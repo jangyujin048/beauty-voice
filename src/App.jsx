@@ -3,10 +3,41 @@ import { createRoot } from "react-dom/client";
 import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw } from "lucide-react";
 import "./style.css";
 
-const API = "http://localhost:4000/api";
 const stores = ["전체", "올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
 const writeStores = ["올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
 const categories = ["운영 건의", "교육 문의", "서비스 개선", "업무 고민", "칭찬", "기타"];
+const STORAGE_KEY = "beauty_voice_data_v1";
+
+const defaultData = {
+  voices: [],
+  notices: [
+    { id: "notice-1", title: "신규 서비스 교육 신청 오픈", body: "6월 신규 서비스 교육 신청이 오픈되었습니다.", createdAt: new Date().toISOString() },
+    { id: "notice-2", title: "이번 주 서비스 TIP", body: "결과 설명 전 고객 니즈를 먼저 확인해 주세요.", createdAt: new Date().toISOString() }
+  ]
+};
+
+function loadStore() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return defaultData;
+    const parsed = JSON.parse(saved);
+    return { ...defaultData, ...parsed };
+  } catch {
+    return defaultData;
+  }
+}
+
+function saveStore(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function makeId() {
+  return crypto?.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
+}
+
+function makeAnonId() {
+  return "BV-" + Math.floor(100 + Math.random() * 900);
+}
 
 function dateLabel(value) {
   const d = new Date(value);
@@ -28,21 +59,12 @@ export default function App() {
     wantsReply: true
   });
 
-  async function loadData() {
-    try {
-      const [voiceRes, noticeRes] = await Promise.all([
-        fetch(`${API}/voices`),
-        fetch(`${API}/notices`)
-      ]);
-      const voiceData = await voiceRes.json();
-      const noticeData = await noticeRes.json();
-      const normalized = voiceData.map(v => ({ ...v, store: v.store || "올리브영N 성수" }));
-      setVoices(normalized);
-      setNotices(noticeData);
-      if (selected) setSelected(normalized.find(v => v.id === selected.id) || null);
-    } catch (e) {
-      alert("서버 연결이 필요합니다. 터미널에서 npm run dev가 실행 중인지 확인해주세요.");
-    }
+  function loadData() {
+    const data = loadStore();
+    const normalized = (data.voices || []).map(v => ({ ...v, store: v.store || "올리브영N 성수" }));
+    setVoices(normalized);
+    setNotices(data.notices || defaultData.notices);
+    if (selected) setSelected(normalized.find(v => v.id === selected.id) || null);
   }
 
   useEffect(() => { loadData(); }, []);
@@ -64,44 +86,59 @@ export default function App() {
     count: voices.filter(v => v.store === store).length
   })), [voices]);
 
-  async function submitVoice(e) {
+  function submitVoice(e) {
     e.preventDefault();
     if (!form.content.trim()) return alert("내용을 입력해주세요.");
 
-    const res = await fetch(`${API}/voices`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form)
-    });
+    const now = new Date().toISOString();
+    const voice = {
+      id: makeId(),
+      anonId: makeAnonId(),
+      store: form.store,
+      category: form.category,
+      content: form.content.trim(),
+      wantsReply: form.wantsReply,
+      status: "접수",
+      createdAt: now,
+      messages: [{ from: "user", text: form.content.trim(), createdAt: now }]
+    };
 
-    if (!res.ok) return alert("접수 중 오류가 발생했습니다.");
+    const data = loadStore();
+    const updated = { ...data, voices: [voice, ...(data.voices || [])] };
+    saveStore(updated);
+
     setForm({ store: "올리브영N 성수", category: "운영 건의", content: "", wantsReply: true });
-    await loadData();
+    loadData();
     setTab("done");
   }
 
-  async function sendReply(e) {
+  function sendReply(e) {
     e.preventDefault();
     if (!selected || !reply.trim()) return;
 
-    const res = await fetch(`${API}/voices/${selected.id}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: reply, from: "admin" })
+    const data = loadStore();
+    const updatedVoices = (data.voices || []).map(v => {
+      if (v.id !== selected.id) return v;
+      return {
+        ...v,
+        status: "답변완료",
+        messages: [
+          ...(v.messages || []),
+          { from: "admin", text: reply.trim(), createdAt: new Date().toISOString() }
+        ]
+      };
     });
 
-    if (!res.ok) return alert("답변 저장 중 오류가 발생했습니다.");
+    saveStore({ ...data, voices: updatedVoices });
     setReply("");
-    await loadData();
+    loadData();
   }
 
-  async function changeStatus(id, status) {
-    await fetch(`${API}/voices/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
-    });
-    await loadData();
+  function changeStatus(id, status) {
+    const data = loadStore();
+    const updatedVoices = (data.voices || []).map(v => v.id === id ? { ...v, status } : v);
+    saveStore({ ...data, voices: updatedVoices });
+    loadData();
   }
 
   return (
@@ -185,7 +222,7 @@ export default function App() {
           <section className="panel center">
             <CheckCircle2 size={56}/>
             <h2>의견이 안전하게 접수되었습니다.</h2>
-            <p>작성 내용은 운영진만 확인할 수 있습니다.</p>
+            <p>현재 테스트 버전은 같은 브라우저에 저장됩니다.</p>
             <button onClick={() => setTab("admin")}>운영진 페이지 확인</button>
           </section>
         )}
