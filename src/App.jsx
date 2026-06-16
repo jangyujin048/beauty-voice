@@ -1,5 +1,3 @@
-const SUPABASE_URL = "https://xhqitwkpkxvgvpukimzf.supabase.co";
-const SUPABASE_KEY = "sb_publishable_4_cJaGZY-ayPEtIgSDg7xw_W8OL_agP";
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
@@ -7,7 +5,7 @@ import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, 
 import "./style.css";
 
 const SUPABASE_URL = "https://xhqitwkpkxvgvpukimzf.supabase.co";
-const SUPABASE_KEY = "여기에_sb_publishable_키를_붙여넣기";
+const SUPABASE_KEY = "sb_publishable_4_cJaGZY-ayPEtIgSDg7xw_W8OL_agP";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
