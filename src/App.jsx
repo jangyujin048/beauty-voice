@@ -1,39 +1,24 @@
+const SUPABASE_URL = "https://xhqitwkpkxvgvpukimzf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_4_cJaGZY-ayPEtIgSDg7xw_W8OL_agP";
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { createClient } from "@supabase/supabase-js";
 import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw } from "lucide-react";
 import "./style.css";
+
+const SUPABASE_URL = "https://xhqitwkpkxvgvpukimzf.supabase.co";
+const SUPABASE_KEY = "여기에_sb_publishable_키를_붙여넣기";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const stores = ["전체", "올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
 const writeStores = ["올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
 const categories = ["운영 건의", "교육 문의", "서비스 개선", "업무 고민", "칭찬", "기타"];
-const STORAGE_KEY = "beauty_voice_data_v1";
 
-const defaultData = {
-  voices: [],
-  notices: [
-    { id: "notice-1", title: "신규 서비스 교육 신청 오픈", body: "6월 신규 서비스 교육 신청이 오픈되었습니다.", createdAt: new Date().toISOString() },
-    { id: "notice-2", title: "이번 주 서비스 TIP", body: "결과 설명 전 고객 니즈를 먼저 확인해 주세요.", createdAt: new Date().toISOString() }
-  ]
-};
-
-function loadStore() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultData;
-    const parsed = JSON.parse(saved);
-    return { ...defaultData, ...parsed };
-  } catch {
-    return defaultData;
-  }
-}
-
-function saveStore(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-function makeId() {
-  return crypto?.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random());
-}
+const defaultNotices = [
+  { id: "notice-1", title: "신규 서비스 교육 신청 오픈", body: "6월 신규 서비스 교육 신청이 오픈되었습니다." },
+  { id: "notice-2", title: "이번 주 서비스 TIP", body: "결과 설명 전 고객 니즈를 먼저 확인해 주세요." }
+];
 
 function makeAnonId() {
   return "BV-" + Math.floor(100 + Math.random() * 900);
@@ -45,10 +30,25 @@ function dateLabel(value) {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+function normalizeVoice(row) {
+  return {
+    id: row.id,
+    anonId: row.anon_id,
+    store: row.store || "올리브영N 성수",
+    category: row.category || "기타",
+    content: row.content || "",
+    wantsReply: Boolean(row.wants_reply),
+    status: row.status || "접수",
+    createdAt: row.created_at,
+    adminReply: row.admin_reply || "",
+    repliedAt: row.replied_at || null
+  };
+}
+
 export default function App() {
   const [tab, setTab] = useState("home");
   const [voices, setVoices] = useState([]);
-  const [notices, setNotices] = useState([]);
+  const [notices] = useState(defaultNotices);
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState("");
   const [storeFilter, setStoreFilter] = useState("전체");
@@ -59,12 +59,24 @@ export default function App() {
     wantsReply: true
   });
 
-  function loadData() {
-    const data = loadStore();
-    const normalized = (data.voices || []).map(v => ({ ...v, store: v.store || "올리브영N 성수" }));
+  async function loadData() {
+    const { data, error } = await supabase
+      .from("voices")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      alert("Supabase 연결 오류가 발생했습니다. 키와 테이블 컬럼을 확인해주세요.");
+      console.error(error);
+      return;
+    }
+
+    const normalized = (data || []).map(normalizeVoice);
     setVoices(normalized);
-    setNotices(data.notices || defaultData.notices);
-    if (selected) setSelected(normalized.find(v => v.id === selected.id) || null);
+
+    if (selected) {
+      setSelected(normalized.find(v => v.id === selected.id) || null);
+    }
   }
 
   useEffect(() => { loadData(); }, []);
@@ -86,59 +98,66 @@ export default function App() {
     count: voices.filter(v => v.store === store).length
   })), [voices]);
 
-  function submitVoice(e) {
+  async function submitVoice(e) {
     e.preventDefault();
     if (!form.content.trim()) return alert("내용을 입력해주세요.");
 
-    const now = new Date().toISOString();
-    const voice = {
-      id: makeId(),
-      anonId: makeAnonId(),
+    const { error } = await supabase.from("voices").insert({
+      anon_id: makeAnonId(),
       store: form.store,
       category: form.category,
       content: form.content.trim(),
-      wantsReply: form.wantsReply,
-      status: "접수",
-      createdAt: now,
-      messages: [{ from: "user", text: form.content.trim(), createdAt: now }]
-    };
+      wants_reply: form.wantsReply,
+      status: "접수"
+    });
 
-    const data = loadStore();
-    const updated = { ...data, voices: [voice, ...(data.voices || [])] };
-    saveStore(updated);
+    if (error) {
+      alert("접수 중 오류가 발생했습니다.");
+      console.error(error);
+      return;
+    }
 
     setForm({ store: "올리브영N 성수", category: "운영 건의", content: "", wantsReply: true });
-    loadData();
+    await loadData();
     setTab("done");
   }
 
-  function sendReply(e) {
+  async function sendReply(e) {
     e.preventDefault();
     if (!selected || !reply.trim()) return;
 
-    const data = loadStore();
-    const updatedVoices = (data.voices || []).map(v => {
-      if (v.id !== selected.id) return v;
-      return {
-        ...v,
-        status: "답변완료",
-        messages: [
-          ...(v.messages || []),
-          { from: "admin", text: reply.trim(), createdAt: new Date().toISOString() }
-        ]
-      };
-    });
+    const { error } = await supabase
+      .from("voices")
+      .update({
+        admin_reply: reply.trim(),
+        replied_at: new Date().toISOString(),
+        status: "답변완료"
+      })
+      .eq("id", selected.id);
 
-    saveStore({ ...data, voices: updatedVoices });
+    if (error) {
+      alert("답변 저장 중 오류가 발생했습니다.");
+      console.error(error);
+      return;
+    }
+
     setReply("");
-    loadData();
+    await loadData();
   }
 
-  function changeStatus(id, status) {
-    const data = loadStore();
-    const updatedVoices = (data.voices || []).map(v => v.id === id ? { ...v, status } : v);
-    saveStore({ ...data, voices: updatedVoices });
-    loadData();
+  async function changeStatus(id, status) {
+    const { error } = await supabase
+      .from("voices")
+      .update({ status })
+      .eq("id", id);
+
+    if (error) {
+      alert("상태 변경 중 오류가 발생했습니다.");
+      console.error(error);
+      return;
+    }
+
+    await loadData();
   }
 
   return (
@@ -222,7 +241,7 @@ export default function App() {
           <section className="panel center">
             <CheckCircle2 size={56}/>
             <h2>의견이 안전하게 접수되었습니다.</h2>
-            <p>현재 테스트 버전은 같은 브라우저에 저장됩니다.</p>
+            <p>운영진 페이지에서 접수 내용을 확인할 수 있습니다.</p>
             <button onClick={() => setTab("admin")}>운영진 페이지 확인</button>
           </section>
         )}
@@ -311,13 +330,19 @@ export default function App() {
                     </div>
 
                     <div className="chat">
-                      {selected.messages.map((m, idx) => (
-                        <div className={`bubble ${m.from}`} key={idx}>
-                          <b>{m.from === "admin" ? "운영진" : selected.anonId}</b>
-                          <p>{m.text}</p>
-                          <small>{dateLabel(m.createdAt)}</small>
+                      <div className="bubble user">
+                        <b>{selected.anonId}</b>
+                        <p>{selected.content}</p>
+                        <small>{dateLabel(selected.createdAt)}</small>
+                      </div>
+
+                      {selected.adminReply && (
+                        <div className="bubble admin">
+                          <b>운영진</b>
+                          <p>{selected.adminReply}</p>
+                          <small>{dateLabel(selected.repliedAt)}</small>
                         </div>
-                      ))}
+                      )}
                     </div>
 
                     <form className="replyForm" onSubmit={sendReply}>
