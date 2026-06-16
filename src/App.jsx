@@ -4,6 +4,8 @@ import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, 
 import "./style.css";
 
 const API = "http://localhost:4000/api";
+const stores = ["전체", "올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
+const writeStores = ["올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
 const categories = ["운영 건의", "교육 문의", "서비스 개선", "업무 고민", "칭찬", "기타"];
 
 function dateLabel(value) {
@@ -18,11 +20,15 @@ export default function App() {
   const [notices, setNotices] = useState([]);
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ category: "운영 건의", content: "", wantsReply: true });
+  const [storeFilter, setStoreFilter] = useState("전체");
+  const [form, setForm] = useState({
+    store: "올리브영N 성수",
+    category: "운영 건의",
+    content: "",
+    wantsReply: true
+  });
 
   async function loadData() {
-    setLoading(true);
     try {
       const [voiceRes, noticeRes] = await Promise.all([
         fetch(`${API}/voices`),
@@ -30,29 +36,33 @@ export default function App() {
       ]);
       const voiceData = await voiceRes.json();
       const noticeData = await noticeRes.json();
-      setVoices(voiceData);
+      const normalized = voiceData.map(v => ({ ...v, store: v.store || "올리브영N 성수" }));
+      setVoices(normalized);
       setNotices(noticeData);
-      if (selected) {
-        const updated = voiceData.find(v => v.id === selected.id);
-        setSelected(updated || null);
-      }
+      if (selected) setSelected(normalized.find(v => v.id === selected.id) || null);
     } catch (e) {
       alert("서버 연결이 필요합니다. 터미널에서 npm run dev가 실행 중인지 확인해주세요.");
-    } finally {
-      setLoading(false);
     }
   }
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
+
+  const filteredVoices = useMemo(() => {
+    if (storeFilter === "전체") return voices;
+    return voices.filter(v => v.store === storeFilter);
+  }, [voices, storeFilter]);
 
   const stats = useMemo(() => ({
-    total: voices.length,
-    waiting: voices.filter(v => v.status === "접수").length,
-    checking: voices.filter(v => v.status === "검토중").length,
-    done: voices.filter(v => v.status === "답변완료").length
-  }), [voices]);
+    total: filteredVoices.length,
+    waiting: filteredVoices.filter(v => v.status === "접수").length,
+    checking: filteredVoices.filter(v => v.status === "검토중").length,
+    done: filteredVoices.filter(v => v.status === "답변완료").length
+  }), [filteredVoices]);
+
+  const storeStats = useMemo(() => writeStores.map(store => ({
+    store,
+    count: voices.filter(v => v.store === store).length
+  })), [voices]);
 
   async function submitVoice(e) {
     e.preventDefault();
@@ -65,7 +75,7 @@ export default function App() {
     });
 
     if (!res.ok) return alert("접수 중 오류가 발생했습니다.");
-    setForm({ category: "운영 건의", content: "", wantsReply: true });
+    setForm({ store: "올리브영N 성수", category: "운영 건의", content: "", wantsReply: true });
     await loadData();
     setTab("done");
   }
@@ -100,8 +110,8 @@ export default function App() {
         <div className="brand">
           <div className="logo">BV</div>
           <div>
-            <h1>BC Voice</h1>
-            <p>전국 BC 소통 플랫폼</p>
+            <h1>Beauty Voice</h1>
+            <p>메이크업 BC 전용 소통 공간</p>
           </div>
         </div>
 
@@ -116,9 +126,9 @@ export default function App() {
         {tab === "home" && (
           <>
             <section className="hero">
-              <span>Voice Lounge</span>
-              <h2>현장의 목소리를 안전하게 전달하고, 운영진과 연결되는 공간</h2>
-              <p>작성 내용은 운영진만 확인할 수 있으며, 필요 시 익명 상태로 1:1 답변을 받을 수 있습니다.</p>
+              <span>Beauty Voice</span>
+              <h2>3개 매장 메이크업 BC의 목소리를 안전하게 전달하는 공간</h2>
+              <p>올리브영N 성수, 뷰티맨션 성수, 센트럴강남타운 메이크업 BC 전용 익명 소통 채널입니다.</p>
               <button onClick={() => setTab("voice")}>익명 의견 남기기</button>
             </section>
 
@@ -129,7 +139,16 @@ export default function App() {
                   <p>{n.body}</p>
                 </div>
               ))}
-              <div className="card"><h3>❤️ 칭찬 릴레이</h3><p>서로의 좋은 사례를 따뜻하게 공유해요.</p></div>
+              <div className="card"><h3>❤️ 칭찬 릴레이</h3><p>같은 매장에서 함께 일하는 동료의 좋은 사례를 따뜻하게 남겨주세요.</p></div>
+            </section>
+
+            <section className="storeGrid">
+              {storeStats.map(item => (
+                <div className="storeCard" key={item.store}>
+                  <b>{item.count}</b>
+                  <span>{item.store}</span>
+                </div>
+              ))}
             </section>
           </>
         )}
@@ -139,6 +158,11 @@ export default function App() {
             <h2>익명 Voice 남기기</h2>
             <p className="sub">건의사항, 고민, 질문, 칭찬까지 편하게 남겨주세요. 내용은 운영진만 확인합니다.</p>
             <form onSubmit={submitVoice} className="form">
+              <label>소속 매장</label>
+              <select value={form.store} onChange={e => setForm({...form, store: e.target.value})}>
+                {writeStores.map(s => <option key={s}>{s}</option>)}
+              </select>
+
               <label>카테고리</label>
               <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
                 {categories.map(c => <option key={c}>{c}</option>)}
@@ -161,7 +185,7 @@ export default function App() {
           <section className="panel center">
             <CheckCircle2 size={56}/>
             <h2>의견이 안전하게 접수되었습니다.</h2>
-            <p>이제 운영진 페이지에서 실제로 접수 내용을 확인할 수 있습니다.</p>
+            <p>작성 내용은 운영진만 확인할 수 있습니다.</p>
             <button onClick={() => setTab("admin")}>운영진 페이지 확인</button>
           </section>
         )}
@@ -170,7 +194,7 @@ export default function App() {
           <section className="panel">
             <h2>Thanks Lounge</h2>
             <p className="sub">동료에게 전하고 싶은 고마운 마음을 남기는 공간입니다.</p>
-            <div className="empty">다음 버전에서 칭찬 카드 작성/공유 기능을 연결할 수 있어요.</div>
+            <div className="empty">다음 버전에서 매장별 칭찬 카드 작성/공유 기능을 연결할 수 있어요.</div>
           </section>
         )}
 
@@ -190,13 +214,25 @@ export default function App() {
             <div className="row">
               <div>
                 <h2>운영진 대시보드</h2>
-                <p className="sub">익명 Voice 접수 내용과 답변 상태를 관리합니다.</p>
+                <p className="sub">매장별 익명 Voice 접수 내용과 답변 상태를 관리합니다.</p>
               </div>
               <button className="soft" onClick={loadData}><RefreshCw size={16}/> 새로고침</button>
             </div>
 
+            <div className="filterTabs">
+              {stores.map(store => (
+                <button
+                  key={store}
+                  onClick={() => { setStoreFilter(store); setSelected(null); }}
+                  className={storeFilter === store ? "active" : ""}
+                >
+                  {store}
+                </button>
+              ))}
+            </div>
+
             <div className="stats">
-              <div><b>{stats.total}</b><span>전체 접수</span></div>
+              <div><b>{stats.total}</b><span>{storeFilter} 접수</span></div>
               <div><b>{stats.waiting}</b><span>접수</span></div>
               <div><b>{stats.checking}</b><span>검토중</span></div>
               <div><b>{stats.done}</b><span>답변완료</span></div>
@@ -205,13 +241,15 @@ export default function App() {
             <div className="adminLayout">
               <div className="inbox">
                 <h3><Inbox size={18}/> 접수함</h3>
-                {voices.map(v => (
+                {filteredVoices.length === 0 && <div className="empty">해당 매장의 접수 건이 없습니다.</div>}
+                {filteredVoices.map(v => (
                   <button className={`ticket ${selected?.id === v.id ? "picked" : ""}`} key={v.id} onClick={() => setSelected(v)}>
                     <div className="ticketTop">
                       <b>{v.anonId}</b>
-                      <span>{v.category}</span>
+                      <span>{v.store}</span>
                       <em>{v.status}</em>
                     </div>
+                    <div className="ticketMeta">{v.category}</div>
                     <p>{v.content}</p>
                     <small>{dateLabel(v.createdAt)}</small>
                   </button>
@@ -226,7 +264,7 @@ export default function App() {
                     <div className="detailTop">
                       <div>
                         <h3>{selected.anonId}</h3>
-                        <p>{selected.category} · {dateLabel(selected.createdAt)}</p>
+                        <p>{selected.store} · {selected.category} · {dateLabel(selected.createdAt)}</p>
                       </div>
                       <select value={selected.status} onChange={e => changeStatus(selected.id, e.target.value)}>
                         <option>접수</option>

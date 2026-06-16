@@ -12,13 +12,17 @@ h1 { font-size: 20px; margin: 0; }
 .main { flex: 1; padding: 42px; max-width: 1200px; margin: 0 auto; width: 100%; }
 .hero { background: linear-gradient(135deg, #fff, #f3e5d7); border: 1px solid #eadfd3; padding: 46px; border-radius: 28px; }
 .hero span { color: #8b5e3c; font-weight: 800; }
-.hero h2 { max-width: 720px; font-size: 34px; line-height: 1.25; margin: 12px 0; }
+.hero h2 { max-width: 760px; font-size: 34px; line-height: 1.25; margin: 12px 0; }
 .hero p, .sub { color: #786b60; line-height: 1.65; }
 .hero button, .form button, .center button, .replyForm button { border: 0; background: #8b5e3c; color: white; padding: 14px 18px; border-radius: 14px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
 .card, .panel { background: white; border: 1px solid #eadfd3; border-radius: 24px; padding: 26px; box-shadow: 0 8px 22px rgba(90, 65, 42, .04); }
 .card h3 { margin-top: 0; }
 .panel h2 { margin: 0; font-size: 28px; }
+.storeGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+.storeCard { background: #fff; border: 1px solid #eadfd3; border-radius: 20px; padding: 20px; }
+.storeCard b { display:block; font-size:28px; color:#8b5e3c; }
+.storeCard span { color:#6f6258; }
 .form { display: grid; gap: 12px; max-width: 700px; margin-top: 20px; }
 .form label { font-weight: 800; margin-top: 8px; }
 select, textarea { border: 1px solid #dcccbc; border-radius: 14px; padding: 14px; background: #fffaf5; }
@@ -36,6 +40,9 @@ textarea { min-height: 160px; resize: vertical; }
 .stats span { color: #8b7a6c; font-size: 13px; }
 .row { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; }
 .soft { border:1px solid #dcccbc; background:#fffaf5; color:#6d4e35; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:8px; cursor:pointer; }
+.filterTabs { display:flex; gap:8px; flex-wrap:wrap; margin-top:20px; }
+.filterTabs button { border:1px solid #dcccbc; background:#fffaf5; color:#6d4e35; border-radius:999px; padding:10px 14px; cursor:pointer; }
+.filterTabs button.active { background:#8b5e3c; color:white; border-color:#8b5e3c; font-weight:800; }
 .adminLayout { display:grid; grid-template-columns: 390px 1fr; gap:18px; align-items:start; }
 .inbox h3 { display:flex; align-items:center; gap:8px; }
 .ticket { width:100%; display:block; text-align:left; border: 1px solid #eadfd3; background:#fff; border-radius: 18px; padding: 18px; margin-bottom:12px; cursor:pointer; }
@@ -43,6 +50,7 @@ textarea { min-height: 160px; resize: vertical; }
 .ticketTop { display: flex; align-items: center; gap: 10px; }
 .ticketTop span { background: #efe1d2; color: #6d4e35; padding: 5px 10px; border-radius: 999px; font-size: 12px; }
 .ticketTop em { margin-left: auto; font-style: normal; color: #8b7a6c; font-size: 13px; }
+.ticketMeta { margin-top:8px; color:#8b5e3c; font-weight:800; font-size:13px; }
 .ticket p { color:#4b4038; line-height:1.45; }
 .ticket small { color:#8b7a6c; }
 .detail { background:#fffaf5; border:1px solid #eadfd3; border-radius:20px; padding:20px; min-height:560px; }
@@ -62,6 +70,6 @@ textarea { min-height: 160px; resize: vertical; }
   .app { flex-direction: column; }
   .sidebar { width: 100%; height: auto; position: relative; }
   .main { padding: 22px; }
-  .grid, .stats, .adminLayout { grid-template-columns: 1fr; }
+  .grid, .stats, .adminLayout, .storeGrid { grid-template-columns: 1fr; }
   .hero h2 { font-size: 26px; }
 }
