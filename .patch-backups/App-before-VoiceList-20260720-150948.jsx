@@ -6,7 +6,6 @@ import "./style.css";
 import { dateLabel } from "./utils/date";
 import AdminFilters from "./components/admin/AdminFilters";
 import DashboardStats from "./components/admin/DashboardStats";
-import VoiceList from "./components/admin/VoiceList";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -1417,14 +1416,27 @@ export default function App() {
             <DashboardStats stats={stats} />
 
             <div className="adminLayout">
-              <VoiceList
-                voices={filteredVoices}
-                selected={selected}
-                onSelect={(voice) => {
-                  setSelected(voice);
-                  setReply(voice.adminReply || "");
-                }}
-              />
+              <div className="inbox">
+                <h3><Inbox size={18}/> 접수함</h3>
+                {filteredVoices.length === 0 && <div className="empty">해당 매장의 접수 건이 없습니다.</div>}
+                {filteredVoices.map(v => (
+                  <button className={`ticket ${selected?.id === v.id ? "picked" : ""}`} key={v.id} onClick={() => {
+  setSelected(v);
+  setReply(v.adminReply || "");
+}}>
+                    <div className="ticketTop">
+                      <b>{v.anonId}</b>
+                      <span>{v.store}</span>
+                      <em>{v.status}</em>
+                    </div>
+                    <div className="ticketMeta">{v.category}</div>
+                    <p><b>{v.title}</b></p>
+                    <p>{v.content}</p>
+                    {v.imageUrl && <small>📎 첨부 이미지 있음</small>}
+                    <small>{dateLabel(v.createdAt)}</small>
+                  </button>
+                ))}
+              </div>
 
               <div className="detail">
                 {!selected ? (
