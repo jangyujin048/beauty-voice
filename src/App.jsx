@@ -138,19 +138,36 @@ export default function App() {
   }
 
   async function loadFaqs() {
-    const { data, error } = await supabase
-      .from("faqs")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("faqs")
+    .select("*");
 
-    if (error) {
-      alert("FAQ를 불러오는 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    setFaqs(data || []);
+  if (error) {
+    alert("FAQ를 불러오는 중 오류가 발생했습니다.");
+    console.error(error);
+    return;
   }
+
+  const categoryOrder = {
+    시스템: 1,
+    서비스: 2,
+    교육: 3,
+    기타: 4,
+  };
+
+  const sortedData = [...(data || [])].sort((a, b) => {
+    const categoryDiff =
+      (categoryOrder[a.category] ?? 999) -
+      (categoryOrder[b.category] ?? 999);
+
+    if (categoryDiff !== 0) return categoryDiff;
+
+    // 같은 카테고리 안에서는 최신순
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+
+  setFaqs(sortedData);
+}
 
   async function loadInsights() {
     const { data, error } = await supabase
