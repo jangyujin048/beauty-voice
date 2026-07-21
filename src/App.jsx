@@ -62,6 +62,12 @@ export default function App() {
   const [faqKeyword, setFaqKeyword] = useState("");
   const [faqCategoryFilter, setFaqCategoryFilter] = useState("전체");
   const [openFaqId, setOpenFaqId] = useState(null);
+const [openFaqCategories, setOpenFaqCategories] = useState([
+  "시스템",
+  "서비스",
+  "교육",
+  "기타",
+]);
   const [insights, setInsights] = useState([]);
   const [insightForm, setInsightForm] = useState({ month: "", title: "", content: "", imageFile: null });
   const [selectedInsight, setSelectedInsight] = useState(null);
@@ -269,6 +275,16 @@ export default function App() {
   voices.filter(v => (v.adminReply || v.status === "답변완료") && !v.replySeen).length
 ), [voices]);
 
+function toggleFaqCategory(category) {
+  setOpenFaqCategories((prev) => {
+    if (prev.includes(category)) {
+      return prev.filter((item) => item !== category);
+    }
+
+    return [...prev, category];
+  });
+}
+
   const filteredFaqs = useMemo(() => {
     const keyword = faqKeyword.trim().toLowerCase();
 
@@ -285,6 +301,29 @@ export default function App() {
       return matchesCategory && matchesKeyword;
     });
   }, [faqs, faqKeyword, faqCategoryFilter]);
+
+const groupedFaqs = useMemo(() => {
+  const categoryOrder = ["시스템", "서비스", "교육", "기타"];
+
+  const groups = {};
+
+  filteredFaqs.forEach((faq) => {
+    const category = faq.category || "기타";
+
+    if (!groups[category]) {
+      groups[category] = [];
+    }
+
+    groups[category].push(faq);
+  });
+
+  return categoryOrder
+    .filter((category) => groups[category]?.length > 0)
+    .map((category) => ({
+      category,
+      items: groups[category],
+    }));
+}, [filteredFaqs]);
 
   const latestNotices = useMemo(() => notices.slice(0, 3), [notices]);
   const latestInsight = useMemo(() => insights[0] || null, [insights]);
@@ -1206,39 +1245,96 @@ export default function App() {
                 placeholder="예: 교육 신청, 뷰티맨션, Color Fit"
               />
             </div>
+<div className="list" style={{ marginTop: 24 }}>
+  {filteredFaqs.length === 0 && (
+    <div className="empty">검색 결과가 없습니다.</div>
+  )}
 
-            <div className="list" style={{ marginTop: 24 }}>
-              {filteredFaqs.length === 0 && (
-                <div className="empty">검색 결과가 없습니다.</div>
-              )}
+  {groupedFaqs.map((group) => {
+    const isCategoryOpen = openFaqCategories.includes(group.category);
 
-              {filteredFaqs.map(item => {
-                const isOpen = openFaqId === item.id;
+    return (
+      <div
+        key={group.category}
+        style={{
+          marginBottom: 24,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => toggleFaqCategory(group.category)}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "16px 18px",
+            border: "1px solid #dbe3f2",
+            borderRadius: 14,
+            background: "#f7f9fd",
+            fontSize: 18,
+            fontWeight: 700,
+            cursor: "pointer",
+            textAlign: "left",
+          }}
+        >
+          <span>
+            {isCategoryOpen ? "▼" : "▶"} {group.category}
+          </span>
 
-                return (
-                  <div className="card" key={item.id}>
-                    <button
-                      className="soft"
-                      onClick={() => setOpenFaqId(isOpen ? null : item.id)}
-                      style={{
-                        width: "100%",
-                        justifyContent: "space-between",
-                        textAlign: "left"
-                      }}
-                    >
-                      <span>{isOpen ? "▼" : "▶"} [{item.category || "기타"}] Q. {item.question}</span>
-                    </button>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            {group.items.length}개
+          </span>
+        </button>
 
-                    {isOpen && (
-                      <div style={{ marginTop: 14 }}>
-                        <p>A. {item.answer}</p>
-                        <small>{dateLabel(item.created_at)}</small>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+        {isCategoryOpen && (
+          <div
+            style={{
+              marginTop: 12,
+            }}
+          >
+            {group.items.map((item) => {
+              const isOpen = openFaqId === item.id;
+
+              return (
+                <div className="card" key={item.id}>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() =>
+                      setOpenFaqId(isOpen ? null : item.id)
+                    }
+                    style={{
+                      width: "100%",
+                      justifyContent: "space-between",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span>
+                      {isOpen ? "▼" : "▶"} Q. {item.question}
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div style={{ marginTop: 14 }}>
+                      <p>A. {item.answer}</p>
+                      <small>{dateLabel(item.created_at)}</small>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  })}
+</div>
           </section>
         )}
 
