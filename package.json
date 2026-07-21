@@ -10,15 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
     "@vitejs/plugin-react": "latest",
-    "vite": "latest",
+    "concurrently": "latest",
+    "cors": "latest",
+    "express": "latest",
+    "lucide-react": "latest",
+    "nanoid": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "lucide-react": "latest",
-    "express": "latest",
-    "cors": "latest",
-    "nanoid": "latest",
-    "concurrently": "latest"
-  },
-  "devDependencies": {}
+    "vite": "latest"
+  }
 }

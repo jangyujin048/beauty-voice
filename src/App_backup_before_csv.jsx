@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import supabase from "./api/supabase";
-import { normalizeVoice, loadVoices } from "./api/voiceApi";
+import { createClient } from "@supabase/supabase-js";
 import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw } from "lucide-react";
 import "./style.css";
-import { dateLabel } from "./utils/date";
-import AdminFilters from "./components/admin/AdminFilters";
-import DashboardStats from "./components/admin/DashboardStats";
-import VoiceList from "./components/admin/VoiceList";
-import VoiceDetail from "./components/admin/VoiceDetail";
+
+const SUPABASE_URL = "https://xhqitwkpkxvgvpukimzf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_4_cJaGZY-ayPEtIgSDg7xw_W8OL_agP";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -19,6 +18,12 @@ const faqCategories = ["전체", "교육", "서비스", "시스템", "기타"];
 
 function makeAnonId() {
   return "BV-" + Math.floor(100 + Math.random() * 900);
+}
+
+function dateLabel(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 function renderLinkedText(text) {
@@ -40,6 +45,24 @@ function renderLinkedText(text) {
   });
 }
 
+function normalizeVoice(row) {
+  return {
+    id: row.id,
+    anonId: row.anon_id,
+    title: row.title || "제목 없음",
+    store: row.store || "올리브영N 성수",
+    category: row.category || "기타",
+    content: row.content || "",
+    imageUrl: row.image_url || "",
+    userPassword: row.user_password || "",
+    wantsReply: Boolean(row.wants_reply),
+    status: row.status || "접수",
+    createdAt: row.created_at,
+adminReply: row.admin_reply || "",
+repliedAt: row.replied_at || null,
+replySeen: Boolean(row.reply_seen)
+  };
+}
 
 export default function App() {
   const [tab, setTab] = useState("home");
@@ -75,9 +98,6 @@ export default function App() {
   const [lookupDone, setLookupDone] = useState(false);
   const [submittedAnonId, setSubmittedAnonId] = useState("");
   const [storeFilter, setStoreFilter] = useState("전체");
-  const [voiceKeyword, setVoiceKeyword] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("전체");
-  const [statusFilter, setStatusFilter] = useState("전체");
   const [form, setForm] = useState({
     title: "",
     store: "올리브영N 성수",
@@ -90,15 +110,18 @@ export default function App() {
   });
 
   async function loadData() {
-    let normalized = [];
+    const { data, error } = await supabase
+      .from("voices")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-    try {
-      normalized = await loadVoices();
-    } catch (error) {
+    if (error) {
       alert("Supabase 연결 오류가 발생했습니다. 키와 테이블 컬럼을 확인해주세요.");
       console.error(error);
       return;
     }
+
+    const normalized = (data || []).map(normalizeVoice);
     setVoices(normalized);
 
     if (selected) {
@@ -176,38 +199,9 @@ export default function App() {
   }, []);
 
   const filteredVoices = useMemo(() => {
-    const keyword = voiceKeyword.trim().toLowerCase();
-
-    return voices.filter((voice) => {
-      const matchStore =
-        storeFilter === "전체" || voice.store === storeFilter;
-
-      const matchCategory =
-        categoryFilter === "전체" || voice.category === categoryFilter;
-
-      const matchStatus =
-        statusFilter === "전체" || voice.status === statusFilter;
-
-      const matchKeyword =
-        keyword === "" ||
-        (voice.title || "").toLowerCase().includes(keyword) ||
-        (voice.content || "").toLowerCase().includes(keyword) ||
-        (voice.adminReply || "").toLowerCase().includes(keyword);
-
-      return (
-        matchStore &&
-        matchCategory &&
-        matchStatus &&
-        matchKeyword
-      );
-    });
-  }, [
-    voices,
-    storeFilter,
-    categoryFilter,
-    statusFilter,
-    voiceKeyword
-  ]);
+    if (storeFilter === "전체") return voices;
+    return voices.filter(v => v.store === storeFilter);
+  }, [voices, storeFilter]);
 
   const myVoices = useMemo(() => {
     if (!lookupDone || !lookupAnonId.trim() || !lookupPassword.trim()) return [];
@@ -218,30 +212,13 @@ export default function App() {
     );
   }, [voices, lookupAnonId, lookupPassword, lookupDone]);
 
-  const stats = useMemo(() => {
-
-    const today=new Date().toISOString().slice(0,10);
-
-    const done=filteredVoices.filter(v=>v.status==="답변완료").length;
-
-    const todayCount=filteredVoices.filter(v=>
-      (v.createdAt||"").slice(0,10)===today
-    ).length;
-
-    return{
-      total:voices.length,
-      filtered:filteredVoices.length,
-      today:todayCount,
-      waiting:filteredVoices.filter(v=>v.status==="접수").length,
-      checking:filteredVoices.filter(v=>v.status==="검토중").length,
-      processing:filteredVoices.filter(v=>v.status==="처리중").length,
-      done,
-      replyRate:filteredVoices.length
-        ?Math.round(done/filteredVoices.length*100)
-        :0
-    };
-
-  },[voices,filteredVoices]);
+  const stats = useMemo(() => ({
+    total: filteredVoices.length,
+    waiting: filteredVoices.filter(v => v.status === "접수").length,
+    checking: filteredVoices.filter(v => v.status === "검토중").length,
+    processing: filteredVoices.filter(v => v.status === "처리중").length,
+    done: filteredVoices.filter(v => v.status === "답변완료").length
+  }), [filteredVoices]);
 
   const storeStats = useMemo(() => writeStores.map(store => ({
     store,
@@ -339,61 +316,6 @@ export default function App() {
     setSubmittedAnonId(newAnonId);
     await loadData();
     setTab("done");
-  }
-
-  function downloadVoiceCsv() {
-    if (voices.length === 0) {
-      alert("다운로드할 Voice가 없습니다.");
-      return;
-    }
-
-    const headers = [
-      "작성일",
-      "매장",
-      "카테고리",
-      "제목",
-      "내용",
-      "상태",
-      "답변여부",
-      "답변내용"
-    ];
-
-    const escapeCsv = value => {
-      const textValue = String(value ?? "").replace(/"/g, '""');
-      return `"${textValue}"`;
-    };
-
-    const rows = voices.map(v => [
-      new Date(v.createdAt).toLocaleString("ko-KR"),
-      v.store,
-      v.category,
-      v.title,
-      v.content,
-      v.status,
-      v.adminReply ? "답변완료" : "미답변",
-      v.adminReply || ""
-    ]);
-
-    const csvContent = [
-      headers.map(escapeCsv).join(","),
-      ...rows.map(row => row.map(escapeCsv).join(","))
-    ].join("\\n");
-
-    const bom = "\\uFEFF";
-    const blob = new Blob([bom + csvContent], {
-      type: "text/csv;charset=utf-8;"
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const today = new Date().toISOString().slice(0, 10);
-
-    link.href = url;
-    link.download = `BeautyVoice_${today}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   }
 
   async function sendReply(e) {
@@ -1319,14 +1241,7 @@ export default function App() {
                 <h2>운영진 대시보드</h2>
                 <p className="sub">매장별 익명 Voice 접수 내용과 답변 상태를 관리합니다.</p>
               </div>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <button className="soft" onClick={downloadVoiceCsv}>
-                  📥 Voice CSV 다운로드
-                </button>
-                <button className="soft" onClick={() => { loadData(); loadNotices(); loadThanks(); loadFaqs(); loadInsights(); }}>
-                  <RefreshCw size={16}/> 새로고침
-                </button>
-              </div>
+              <button className="soft" onClick={() => { loadData(); loadNotices(); loadThanks(); loadFaqs(); loadInsights(); }}><RefreshCw size={16}/> 새로고침</button>
             </div>
 
             <div className="filterTabs" style={{ marginBottom: 24 }}>
@@ -1358,57 +1273,109 @@ export default function App() {
 
             {adminSubTab === "voice" && (
               <>
-                <AdminFilters
-                  keyword={voiceKeyword}
-                  onKeywordChange={(value) => {
-                    setVoiceKeyword(value);
-                    setSelected(null);
-                  }}
-                  stores={stores}
-                  storeFilter={storeFilter}
-                  onStoreChange={(value) => {
-                    setStoreFilter(value);
-                    setSelected(null);
-                  }}
-                  categories={categories}
-                  categoryFilter={categoryFilter}
-                  onCategoryChange={(value) => {
-                    setCategoryFilter(value);
-                    setSelected(null);
-                  }}
-                  statusFilter={statusFilter}
-                  onStatusChange={(value) => {
-                    setStatusFilter(value);
-                    setSelected(null);
-                  }}
-                  onReset={() => {
-                    setVoiceKeyword("");
-                    setStoreFilter("전체");
-                    setCategoryFilter("전체");
-                    setStatusFilter("전체");
-                    setSelected(null);
-                  }}
-                />
+            <div className="filterTabs">
+              {stores.map(store => (
+                <button
+                  key={store}
+                  onClick={() => { setStoreFilter(store); setSelected(null); }}
+                  className={storeFilter === store ? "active" : ""}
+                >
+                  {store}
+                </button>
+              ))}
+            </div>
 
-            <DashboardStats stats={stats} />
+            <div className="stats">
+              <div><b>{stats.total}</b><span>{storeFilter} 접수</span></div>
+              <div><b>{stats.waiting}</b><span>접수</span></div>
+              <div><b>{stats.checking}</b><span>검토중</span></div>
+              <div><b>{stats.processing}</b><span>처리중</span></div>
+              <div><b>{stats.done}</b><span>답변완료</span></div>
+            </div>
 
             <div className="adminLayout">
-              <VoiceList
-                voices={filteredVoices}
-                selected={selected}
-                onSelect={(voice) => {
-                  setSelected(voice);
-                  setReply(voice.adminReply || "");
-                }}
-              />
+              <div className="inbox">
+                <h3><Inbox size={18}/> 접수함</h3>
+                {filteredVoices.length === 0 && <div className="empty">해당 매장의 접수 건이 없습니다.</div>}
+                {filteredVoices.map(v => (
+                  <button className={`ticket ${selected?.id === v.id ? "picked" : ""}`} key={v.id} onClick={() => {
+  setSelected(v);
+  setReply(v.adminReply || "");
+}}>
+                    <div className="ticketTop">
+                      <b>{v.anonId}</b>
+                      <span>{v.store}</span>
+                      <em>{v.status}</em>
+                    </div>
+                    <div className="ticketMeta">{v.category}</div>
+                    <p><b>{v.title}</b></p>
+                    <p>{v.content}</p>
+                    {v.imageUrl && <small>📎 첨부 이미지 있음</small>}
+                    <small>{dateLabel(v.createdAt)}</small>
+                  </button>
+                ))}
+              </div>
 
-              <VoiceDetail
-                selected={selected}
-                reply={reply}
-                onReplyChange={setReply}
-                onSubmitReply={sendReply}
-                onStatusChange={changeStatus}
-              />
+              <div className="detail">
+                {!selected ? (
+                  <div className="empty">왼쪽 접수함에서 내용을 선택해주세요.</div>
+                ) : (
+                  <>
+                    <div className="detailTop">
+                      <div>
+                        <h3>{selected.title}</h3>
+                        <p>{selected.anonId} · {selected.store} · {selected.category} · {dateLabel(selected.createdAt)}</p>
+                      </div>
+                      <select value={selected.status} onChange={e => changeStatus(selected.id, e.target.value)}>
+                        <option>접수</option>
+                        <option>검토중</option>
+                        <option>처리중</option>
+                        <option>답변완료</option>
+                      </select>
+                    </div>
+
+                    <div className="chat">
+                      <div className="bubble user">
+                        <b>{selected.anonId}</b>
+                        <p>{selected.content}</p>
+                        {selected.imageUrl && (
+                          <a href={selected.imageUrl} target="_blank" rel="noreferrer">
+                            <img
+                              src={selected.imageUrl}
+                              alt="첨부 이미지"
+                              style={{ maxWidth: "100%", borderRadius: 16, marginTop: 12 }}
+                            />
+                          </a>
+                        )}
+                        <small>{dateLabel(selected.createdAt)}</small>
+                      </div>
+
+                      {selected.adminReply && (
+                        <div className="bubble admin">
+                          <b>운영진</b>
+                          <p>{selected.adminReply}</p>
+                          <small>{dateLabel(selected.repliedAt)}</small>
+                        </div>
+                      )}
+                    </div>
+
+                    <form className="replyForm" onSubmit={sendReply}>
+                      <textarea
+  value={reply}
+  onChange={e => setReply(e.target.value)}
+  placeholder={
+    selected?.adminReply
+      ? "답변을 수정할 수 있습니다."
+      : "운영진 답변을 입력하세요."
+  }
+/>
+                      <button type="submit">
+  {selected?.adminReply ? "답변 수정" : "답변 등록"}
+</button>
+                    </form>
+                  </>
+                )}
+              </div>
             </div>
               </>
             )}
