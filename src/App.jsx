@@ -1,17 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { createClient } from "@supabase/supabase-js";
+import supabase from "./api/supabase";
+import { normalizeVoice, loadVoices } from "./api/voiceApi";
 import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw } from "lucide-react";
 import "./style.css";
 import { dateLabel } from "./utils/date";
 import AdminFilters from "./components/admin/AdminFilters";
 import DashboardStats from "./components/admin/DashboardStats";
 import VoiceList from "./components/admin/VoiceList";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_KEY
-);
+import VoiceDetail from "./components/admin/VoiceDetail";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -43,24 +40,6 @@ function renderLinkedText(text) {
   });
 }
 
-function normalizeVoice(row) {
-  return {
-    id: row.id,
-    anonId: row.anon_id,
-    title: row.title || "제목 없음",
-    store: row.store || "올리브영N 성수",
-    category: row.category || "기타",
-    content: row.content || "",
-    imageUrl: row.image_url || "",
-    userPassword: row.user_password || "",
-    wantsReply: Boolean(row.wants_reply),
-    status: row.status || "접수",
-    createdAt: row.created_at,
-adminReply: row.admin_reply || "",
-repliedAt: row.replied_at || null,
-replySeen: Boolean(row.reply_seen)
-  };
-}
 
 export default function App() {
   const [tab, setTab] = useState("home");
@@ -111,18 +90,15 @@ export default function App() {
   });
 
   async function loadData() {
-    const { data, error } = await supabase
-      .from("voices")
-      .select("*")
-      .order("created_at", { ascending: false });
+    let normalized = [];
 
-    if (error) {
+    try {
+      normalized = await loadVoices();
+    } catch (error) {
       alert("Supabase 연결 오류가 발생했습니다. 키와 테이블 컬럼을 확인해주세요.");
       console.error(error);
       return;
     }
-
-    const normalized = (data || []).map(normalizeVoice);
     setVoices(normalized);
 
     if (selected) {
@@ -1426,66 +1402,13 @@ export default function App() {
                 }}
               />
 
-              <div className="detail">
-                {!selected ? (
-                  <div className="empty">왼쪽 접수함에서 내용을 선택해주세요.</div>
-                ) : (
-                  <>
-                    <div className="detailTop">
-                      <div>
-                        <h3>{selected.title}</h3>
-                        <p>{selected.anonId} · {selected.store} · {selected.category} · {dateLabel(selected.createdAt)}</p>
-                      </div>
-                      <select value={selected.status} onChange={e => changeStatus(selected.id, e.target.value)}>
-                        <option>접수</option>
-                        <option>검토중</option>
-                        <option>처리중</option>
-                        <option>답변완료</option>
-                      </select>
-                    </div>
-
-                    <div className="chat">
-                      <div className="bubble user">
-                        <b>{selected.anonId}</b>
-                        <p>{selected.content}</p>
-                        {selected.imageUrl && (
-                          <a href={selected.imageUrl} target="_blank" rel="noreferrer">
-                            <img
-                              src={selected.imageUrl}
-                              alt="첨부 이미지"
-                              style={{ maxWidth: "100%", borderRadius: 16, marginTop: 12 }}
-                            />
-                          </a>
-                        )}
-                        <small>{dateLabel(selected.createdAt)}</small>
-                      </div>
-
-                      {selected.adminReply && (
-                        <div className="bubble admin">
-                          <b>운영진</b>
-                          <p>{selected.adminReply}</p>
-                          <small>{dateLabel(selected.repliedAt)}</small>
-                        </div>
-                      )}
-                    </div>
-
-                    <form className="replyForm" onSubmit={sendReply}>
-                      <textarea
-  value={reply}
-  onChange={e => setReply(e.target.value)}
-  placeholder={
-    selected?.adminReply
-      ? "답변을 수정할 수 있습니다."
-      : "운영진 답변을 입력하세요."
-  }
-/>
-                      <button type="submit">
-  {selected?.adminReply ? "답변 수정" : "답변 등록"}
-</button>
-                    </form>
-                  </>
-                )}
-              </div>
+              <VoiceDetail
+                selected={selected}
+                reply={reply}
+                onReplyChange={setReply}
+                onSubmitReply={sendReply}
+                onStatusChange={changeStatus}
+              />
             </div>
               </>
             )}

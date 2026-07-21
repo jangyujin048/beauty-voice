@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.DS_Store
+.patch-backups/
+.env
+.env.local
