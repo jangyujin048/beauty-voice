@@ -1245,7 +1245,7 @@ const groupedFaqs = useMemo(() => {
                 placeholder="예: 교육 신청, 뷰티맨션, Color Fit"
               />
             </div>
-<div className="list" style={{ marginTop: 24 }}>
+<div className="faq-list">
   {filteredFaqs.length === 0 && (
     <div className="empty">검색 결과가 없습니다.</div>
   )}
@@ -1254,75 +1254,53 @@ const groupedFaqs = useMemo(() => {
     const isCategoryOpen = openFaqCategories.includes(group.category);
 
     return (
-      <div
-        key={group.category}
-        style={{
-          marginBottom: 24,
-        }}
-      >
+      <div className="faq-category" key={group.category}>
         <button
           type="button"
+          className="faq-category-header"
           onClick={() => toggleFaqCategory(group.category)}
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "16px 18px",
-            border: "1px solid #dbe3f2",
-            borderRadius: 14,
-            background: "#f7f9fd",
-            fontSize: 18,
-            fontWeight: 700,
-            cursor: "pointer",
-            textAlign: "left",
-          }}
         >
-          <span>
-            {isCategoryOpen ? "▼" : "▶"} {group.category}
+          <span className="faq-category-title">
+            <span>{isCategoryOpen ? "▼" : "▶"}</span>
+            <span>{group.category}</span>
           </span>
 
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-            }}
-          >
+          <span className="faq-category-count">
             {group.items.length}개
           </span>
         </button>
 
         {isCategoryOpen && (
-          <div
-            style={{
-              marginTop: 12,
-            }}
-          >
+          <div className="faq-category-content">
             {group.items.map((item) => {
               const isOpen = openFaqId === item.id;
 
               return (
-                <div className="card" key={item.id}>
+                <div className="faq-item" key={item.id}>
                   <button
                     type="button"
-                    className="soft"
+                    className="faq-question-button"
                     onClick={() =>
                       setOpenFaqId(isOpen ? null : item.id)
                     }
-                    style={{
-                      width: "100%",
-                      justifyContent: "space-between",
-                      textAlign: "left",
-                    }}
                   >
-                    <span>
-                      {isOpen ? "▼" : "▶"} Q. {item.question}
+                    <span className="faq-question-text">
+                      <span className="faq-question-label">Q.</span>
+                      <span>{item.question}</span>
+                    </span>
+
+                    <span
+                      className={`faq-chevron ${isOpen ? "open" : ""}`}
+                    >
+                      ▼
                     </span>
                   </button>
 
                   {isOpen && (
-                    <div style={{ marginTop: 14 }}>
-                      <p>A. {item.answer}</p>
+                    <div className="faq-answer">
+                      <p>
+                        <strong>A.</strong> {item.answer}
+                      </p>
                       <small>{dateLabel(item.created_at)}</small>
                     </div>
                   )}
