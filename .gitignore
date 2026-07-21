@@ -4,3 +4,5 @@ dist/
 .patch-backups/
 .env
 .env.local
+.vite/
+.vercel/
