@@ -240,128 +240,123 @@ if (isWriting) {
         </select>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 14,
-        }}
+<div
+  style={{
+    display: "grid",
+    gap: 14,
+  }}
+>
+  {isLoading ? (
+    <div className="card">
+      <p>게시글을 불러오는 중...</p>
+    </div>
+  ) : sortedPosts.length === 0 ? (
+    <div className="card">
+      <p>조건에 맞는 게시글이 없습니다.</p>
+    </div>
+  ) : (
+    sortedPosts.map(post => (
+      <article
+        key={post.id}
+        className="card"
+        onClick={() => setSelectedPost(post)}
+        style={{ cursor: "pointer" }}
       >
-	{isLoading ? (
-  	<div className="card">
-  	  <p>게시글을 불러오는 중...</p>
- 	 </div>
-        {sortedPosts.length === 0 ? (
-          <div className="card">
-            <p>조건에 맞는 게시글이 없습니다.</p>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            marginBottom: 12,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+            }}
+          >
+            {post.category}
+          </span>
+
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {post.status}
+          </span>
+        </div>
+
+        <h3 style={{ marginBottom: 8 }}>{post.title}</h3>
+
+        <p className="sub" style={{ marginBottom: 16 }}>
+          {post.content}
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 13,
+            }}
+          >
+            <span>{post.store}</span>
+            <span>·</span>
+            <span>
+              {post.created_at
+                ? new Date(post.created_at).toLocaleDateString("ko-KR")
+                : ""}
+            </span>
           </div>
-        ) : (
-          sortedPosts.map(post => (
-            <article
-              key={post.id}
-              className="card"
-              onClick={() => setSelectedPost(post)}
-              style={{ cursor: "pointer" }}
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              fontSize: 13,
+            }}
+          >
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  {post.category}
-                </span>
+              <ThumbsUp size={15} />
+              {post.likes ?? 0}
+            </span>
 
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                  }}
-                >
-                  {post.status}
-                </span>
-              </div>
-
-              <h3 style={{ marginBottom: 8 }}>
-                {post.title}
-              </h3>
-
-              <p className="sub" style={{ marginBottom: 16 }}>
-                {post.content}
-              </p>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 13,
-                  }}
-                >
-                
-                    <span>{post.store}</span>
-
-                  <span>·</span>
-                  <span>
-  			{post.created_at
-  			  ? new Date(post.created_at).toLocaleDateString("ko-KR")
- 			   : ""}
-		  </span>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    fontSize: 13,
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <ThumbsUp size={15} />
-                    {post.likes}
-                  </span>
-
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                    }}
-                  >
-                    <MessageCircle size={15} />
-			0
-                    {post.comments}
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))
-        )}
-      </div>
+            <span
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <MessageCircle size={15} />
+              0
+            </span>
+          </div>
+        </div>
+      </article>
+    ))
+  )}
+</div>
     </section>
   );
 }
