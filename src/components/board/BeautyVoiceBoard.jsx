@@ -11,7 +11,7 @@ import {
 import {
   getPosts,
   createPost,
-} from "../services/postService";
+} from "../../services/postService";
 
 const categories = [
   "전체",
