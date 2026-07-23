@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import BoardDetail from "./BoardDetail";
 import WritePost from "./WritePost";
 import {
@@ -6,8 +6,12 @@ import {
   Plus,
   MessageCircle,
   ThumbsUp,
-  Lock,
 } from "lucide-react";
+
+import {
+  getPosts,
+  createPost,
+} from "../services/postService";
 
 const categories = [
   "전체",
@@ -18,53 +22,30 @@ const categories = [
   "기타",
 ];
 
-const samplePosts = [
-  {
-    id: 1,
-    category: "질문",
-    title: "교육자료에 고객 응대 사례를 추가하면 좋을 것 같아요.",
-    content:
-      "현장에서 자주 발생하는 상황별 응대 사례를 함께 볼 수 있으면 실무에 더 도움이 될 것 같습니다.",
-    store: "올리브영N 성수",
-    storePrivate: false,
-    status: "검토 중",
-    likes: 12,
-    comments: 5,
-    createdAt: "2시간 전",
-    createdOrder: 3,
-  },
-  {
-    id: 2,
-    category: "운영 제안",
-    title: "서비스 운영 방식에 대한 의견이 있습니다.",
-    content:
-      "고객 대기시간을 줄이기 위해 예약 간격을 조금 조정하면 좋을 것 같습니다.",
-    store: "올리브영 뷰티 맨션 성수",
-    storePrivate: true,
-    status: "접수",
-    likes: 8,
-    comments: 13,
-    createdAt: "1일 전",
-    createdOrder: 2,
-  },
-  {
-    id: 3,
-    category: "도움 요청",
-    title: "고객이 진단 결과를 신뢰하지 않을 때 어떻게 설명하시나요?",
-    content:
-      "진단 결과와 고객이 생각하는 이미지가 다를 때 자연스럽게 설명하는 방법이 궁금합니다.",
-    store: "올리브영 센트럴 강남 타운",
-    storePrivate: false,
-    status: "완료",
-    likes: 21,
-    comments: 4,
-    createdAt: "3일 전",
-    createdOrder: 1,
-  },
-];
 
 export default function BeautyVoiceBoard() {
-  const [posts, setPosts] = useState(samplePosts);
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+useEffect(() => {
+  loadPosts();
+}, []);
+
+const loadPosts = async () => {
+  try {
+    setIsLoading(true);
+
+    const data = await getPosts();
+
+    setPosts(data ?? []);
+  } catch (error) {
+    console.error("게시글 불러오기 오류:", error);
+    alert("게시글을 불러오지 못했습니다.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [keyword, setKeyword] = useState("");
@@ -73,9 +54,6 @@ export default function BeautyVoiceBoard() {
   const [isWriting, setIsWriting] = useState(false);
 
   const filteredPosts = posts.filter(post => {
-	if (post.adminOnly) {
-  	  return false;
-	}
     const matchesCategory =
       selectedCategory === "전체" ||
       post.category === selectedCategory;
@@ -95,34 +73,57 @@ export default function BeautyVoiceBoard() {
       return b.likes - a.likes;
     }
 
-    return b.createdOrder - a.createdOrder;
-  });
+    return (
+  new Date(b.created_at).getTime() -
+  new Date(a.created_at).getTime()
+);
+});
+
+const handleCreatePost = async form => {
+  if (isSubmitting) {
+    return;
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const newPost = await createPost({
+      category: form.category,
+      title: form.title.trim(),
+      content: form.content.trim(),
+      store: form.store,
+      nickname: form.nickname.trim() || "익명",
+      admin_only: form.adminOnly,
+      status: "접수",
+      image_url: null,
+      likes: 0,
+    });
+
+    if (!newPost.admin_only) {
+      setPosts(prev => [newPost, ...prev]);
+    }
+
+    setIsWriting(false);
+
+    if (newPost.admin_only) {
+      alert("운영자에게 게시글이 전달되었습니다.");
+    } else {
+      alert("게시글이 등록되었습니다.");
+    }
+  } catch (error) {
+    console.error("게시글 등록 오류:", error);
+    alert("게시글을 등록하지 못했습니다.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
 if (isWriting) {
   return (
     <WritePost
       onBack={() => setIsWriting(false)}
-      onSubmit={form => {
-        const newPost = {
-          id: Date.now(),
-          category: form.category,
-          title: form.title,
-          content: form.content,
-          store: form.store,
-          storePrivate: false,
-          adminOnly: form.adminOnly,
-          nickname: form.nickname || "익명",
-          status: "접수",
-          likes: 0,
-          comments: 0,
-          createdAt: "방금 전",
-          createdOrder: Date.now(),
-        };
-
-        setPosts(prev => [newPost, ...prev]);
-
-        setIsWriting(false);
-      }}
+      onSubmit={handleCreatePost}
+      isSubmitting={isSubmitting}
     />
   );
 }
@@ -245,6 +246,10 @@ if (isWriting) {
           gap: 14,
         }}
       >
+	{isLoading ? (
+  	<div className="card">
+  	  <p>게시글을 불러오는 중...</p>
+ 	 </div>
         {sortedPosts.length === 0 ? (
           <div className="card">
             <p>조건에 맞는 게시글이 없습니다.</p>
@@ -310,17 +315,15 @@ if (isWriting) {
                     fontSize: 13,
                   }}
                 >
-                  {post.storePrivate ? (
-                    <>
-                      <Lock size={14} />
-                      <span>매장 비공개</span>
-                    </>
-                  ) : (
+                
                     <span>{post.store}</span>
-                  )}
 
                   <span>·</span>
-                  <span>{post.createdAt}</span>
+                  <span>
+  			{post.created_at
+  			  ? new Date(post.created_at).toLocaleDateString("ko-KR")
+ 			   : ""}
+		  </span>
                 </div>
 
                 <div
@@ -350,6 +353,7 @@ if (isWriting) {
                     }}
                   >
                     <MessageCircle size={15} />
+			0
                     {post.comments}
                   </span>
                 </div>
