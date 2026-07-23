@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
+
 import BoardDetail from "./BoardDetail";
 import WritePost from "./WritePost";
-import {
-  Search,
-  Plus,
-  MessageCircle,
-  ThumbsUp,
-} from "lucide-react";
+import BoardCard from "./BoardCard";
+import SearchBar from "./SearchBar";
 
 import {
   getPosts,
@@ -22,36 +20,36 @@ const categories = [
   "기타",
 ];
 
-
 export default function BeautyVoiceBoard() {
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-useEffect(() => {
-  loadPosts();
-}, []);
-
-const loadPosts = async () => {
-  try {
-    setIsLoading(true);
-
-    const data = await getPosts();
-
-    setPosts(data ?? []);
-  } catch (error) {
-    console.error("게시글 불러오기 오류:", error);
-    alert("게시글을 불러오지 못했습니다.");
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [selectedCategory, setSelectedCategory] =
+    useState("전체");
   const [keyword, setKeyword] = useState("");
   const [sortType, setSortType] = useState("latest");
   const [selectedPost, setSelectedPost] = useState(null);
   const [isWriting, setIsWriting] = useState(false);
+
+  useEffect(() => {
+    loadPosts();
+  }, []);
+
+  const loadPosts = async () => {
+    try {
+      setIsLoading(true);
+
+      const data = await getPosts();
+
+      setPosts(data ?? []);
+    } catch (error) {
+      console.error(error);
+      alert("게시글을 불러오지 못했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredPosts = posts.filter(post => {
     const matchesCategory =
@@ -70,62 +68,60 @@ const loadPosts = async () => {
 
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (sortType === "likes") {
-      return b.likes - a.likes;
+      return (b.likes ?? 0) - (a.likes ?? 0);
     }
 
     return (
-  new Date(b.created_at).getTime() -
-  new Date(a.created_at).getTime()
-);
-});
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime()
+    );
+  });
 
-const handleCreatePost = async form => {
-  if (isSubmitting) {
-    return;
-  }
+  const handleCreatePost = async form => {
+    if (isSubmitting) return;
 
-  try {
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
 
-    const newPost = await createPost({
-      category: form.category,
-      title: form.title.trim(),
-      content: form.content.trim(),
-      store: form.store,
-      admin_only: form.adminOnly,
-      status: "접수",
-      image_url: null,
-      likes: 0,
-    });
+      const newPost = await createPost({
+        category: form.category,
+        title: form.title.trim(),
+        content: form.content.trim(),
+        store: form.store,
+        admin_only: form.adminOnly,
+        status: "접수",
+        image_url: null,
+        likes: 0,
+      });
 
-    if (!newPost.admin_only) {
-      setPosts(prev => [newPost, ...prev]);
+      if (!newPost.admin_only) {
+        setPosts(prev => [newPost, ...prev]);
+      }
+
+      setIsWriting(false);
+
+      alert(
+        newPost.admin_only
+          ? "운영자에게 게시글이 전달되었습니다."
+          : "게시글이 등록되었습니다."
+      );
+    } catch (error) {
+      console.error(error);
+      alert("게시글을 등록하지 못했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    setIsWriting(false);
-
-    if (newPost.admin_only) {
-      alert("운영자에게 게시글이 전달되었습니다.");
-    } else {
-      alert("게시글이 등록되었습니다.");
-    }
-  } catch (error) {
-    console.error("게시글 등록 오류:", error);
-    alert("게시글을 등록하지 못했습니다.");
-  } finally {
-    setIsSubmitting(false);
+  if (isWriting) {
+    return (
+      <WritePost
+        onBack={() => setIsWriting(false)}
+        onSubmit={handleCreatePost}
+        isSubmitting={isSubmitting}
+      />
+    );
   }
-};
-
-if (isWriting) {
-  return (
-    <WritePost
-      onBack={() => setIsWriting(false)}
-      onSubmit={handleCreatePost}
-      isSubmitting={isSubmitting}
-    />
-  );
-}
 
   if (selectedPost) {
     return (
@@ -148,7 +144,9 @@ if (isWriting) {
         }}
       >
         <div>
-          <h2 style={{ marginBottom: 8 }}>Beauty Voice</h2>
+          <h2 style={{ marginBottom: 8 }}>
+            Beauty Voice
+          </h2>
 
           <p className="sub">
             메이크업 BC의 생각과 경험이 모이는 소통 공간입니다.
@@ -164,23 +162,10 @@ if (isWriting) {
         </button>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 18,
-        }}
-      >
-        <Search size={18} />
-
-        <input
-          value={keyword}
-          onChange={event => setKeyword(event.target.value)}
-          placeholder="제목 또는 내용 검색"
-          style={{ flex: 1 }}
-        />
-      </div>
+      <SearchBar
+  value={keyword}
+  onChange={setKeyword}
+/>
 
       <div
         style={{
@@ -194,9 +179,13 @@ if (isWriting) {
           <button
             key={category}
             type="button"
-            onClick={() => setSelectedCategory(category)}
+            onClick={() =>
+              setSelectedCategory(category)
+            }
             className={
-              selectedCategory === category ? "active" : ""
+              selectedCategory === category
+                ? "active"
+                : ""
             }
           >
             {category}
@@ -209,7 +198,6 @@ if (isWriting) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: 12,
           marginBottom: 14,
         }}
       >
@@ -220,142 +208,57 @@ if (isWriting) {
             fontWeight: 700,
           }}
         >
-          {selectedCategory === "전체"
-            ? "전체"
-            : selectedCategory}{" "}
-          {sortedPosts.length}건
+          {selectedCategory} {sortedPosts.length}건
         </p>
 
         <select
           value={sortType}
-          onChange={event => setSortType(event.target.value)}
+          onChange={event =>
+            setSortType(event.target.value)
+          }
           style={{
             width: "auto",
             minWidth: 110,
           }}
         >
-          <option value="latest">최신순</option>
-          <option value="likes">공감순</option>
+          <option value="latest">
+            최신순
+          </option>
+
+          <option value="likes">
+            공감순
+          </option>
         </select>
       </div>
 
-<div
-  style={{
-    display: "grid",
-    gap: 14,
-  }}
->
-  {isLoading ? (
-    <div className="card">
-      <p>게시글을 불러오는 중...</p>
-    </div>
-  ) : sortedPosts.length === 0 ? (
-    <div className="card">
-      <p>조건에 맞는 게시글이 없습니다.</p>
-    </div>
-  ) : (
-    sortedPosts.map(post => (
-      <article
-        key={post.id}
-        className="card"
-        onClick={() => setSelectedPost(post)}
-        style={{ cursor: "pointer" }}
+      <div
+        style={{
+          display: "grid",
+          gap: 14,
+        }}
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-            }}
-          >
-            {post.category}
-          </span>
-
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            {post.status}
-          </span>
-        </div>
-
-        <h3 style={{ marginBottom: 8 }}>{post.title}</h3>
-
-        <p className="sub" style={{ marginBottom: 16 }}>
-          {post.content}
-        </p>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 13,
-            }}
-          >
-            <span>{post.store}</span>
-            <span>·</span>
-            <span>
-              {post.created_at
-                ? new Date(post.created_at).toLocaleDateString("ko-KR")
-                : ""}
-            </span>
+        {isLoading ? (
+          <div className="card">
+            <p>게시글을 불러오는 중...</p>
           </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              fontSize: 13,
-            }}
-          >
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-              }}
-            >
-              <ThumbsUp size={15} />
-              {post.likes ?? 0}
-            </span>
-
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 5,
-              }}
-            >
-              <MessageCircle size={15} />
-              0
-            </span>
+        ) : sortedPosts.length === 0 ? (
+          <div className="card">
+            <p>
+              조건에 맞는 게시글이 없습니다.
+            </p>
           </div>
-        </div>
-      </article>
-    ))
-  )}
-</div>
+        ) : (
+          sortedPosts.map(post => (
+            <BoardCard
+              key={post.id}
+              post={post}
+              onClick={() =>
+                setSelectedPost(post)
+              }
+            />
+          ))
+        )}
+      </div>
     </section>
   );
 }
