@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import BoardDetail from "./BoardDetail";
+import WritePost from "./WritePost";
 import {
   Search,
   Plus,
@@ -7,63 +9,73 @@ import {
   Lock,
 } from "lucide-react";
 
-const boardCategories = [
+const categories = [
   "전체",
-  "아이디어",
   "질문",
-  "도움 요청",
-  "칭찬",
   "운영 제안",
-  "자유 이야기",
+  "도움 요청",
+  "아이디어",
+  "기타",
 ];
 
 const samplePosts = [
   {
     id: 1,
-    category: "아이디어",
+    category: "질문",
     title: "교육자료에 고객 응대 사례를 추가하면 좋을 것 같아요.",
     content:
       "현장에서 자주 발생하는 상황별 응대 사례를 함께 볼 수 있으면 실무에 더 도움이 될 것 같습니다.",
-    store: "N 성수",
+    store: "올리브영N 성수",
     storePrivate: false,
     status: "검토 중",
     likes: 12,
     comments: 5,
     createdAt: "2시간 전",
+    createdOrder: 3,
   },
   {
     id: 2,
-    category: "질문",
-    title: "이런 고객님께는 어떻게 안내하는 게 좋을까요?",
+    category: "운영 제안",
+    title: "서비스 운영 방식에 대한 의견이 있습니다.",
     content:
-      "원하는 메이크업과 진단 결과가 다를 때 자연스럽게 설명하는 방법이 궁금합니다.",
-    store: "N 강남",
+      "고객 대기시간을 줄이기 위해 예약 간격을 조금 조정하면 좋을 것 같습니다.",
+    store: "올리브영 뷰티 맨션 성수",
     storePrivate: true,
     status: "접수",
     likes: 8,
     comments: 13,
     createdAt: "1일 전",
+    createdOrder: 2,
   },
   {
     id: 3,
-    category: "칭찬",
-    title: "오늘 교육을 진행해주신 강사님께 감사드립니다.",
+    category: "도움 요청",
+    title: "고객이 진단 결과를 신뢰하지 않을 때 어떻게 설명하시나요?",
     content:
-      "실습 중 어려웠던 부분을 자세히 알려주셔서 많은 도움이 되었습니다.",
-    store: "N 명동",
+      "진단 결과와 고객이 생각하는 이미지가 다를 때 자연스럽게 설명하는 방법이 궁금합니다.",
+    store: "올리브영 센트럴 강남 타운",
     storePrivate: false,
     status: "완료",
     likes: 21,
     comments: 4,
     createdAt: "3일 전",
+    createdOrder: 1,
   },
 ];
 
 export default function BeautyVoiceBoard() {
+  const [posts, setPosts] = useState(samplePosts);
+
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [keyword, setKeyword] = useState("");
+  const [sortType, setSortType] = useState("latest");
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [isWriting, setIsWriting] = useState(false);
 
-  const filteredPosts = samplePosts.filter(post => {
+  const filteredPosts = posts.filter(post => {
+	if (post.adminOnly) {
+  	  return false;
+	}
     const matchesCategory =
       selectedCategory === "전체" ||
       post.category === selectedCategory;
@@ -77,6 +89,52 @@ export default function BeautyVoiceBoard() {
 
     return matchesCategory && matchesKeyword;
   });
+
+  const sortedPosts = [...filteredPosts].sort((a, b) => {
+    if (sortType === "likes") {
+      return b.likes - a.likes;
+    }
+
+    return b.createdOrder - a.createdOrder;
+  });
+
+if (isWriting) {
+  return (
+    <WritePost
+      onBack={() => setIsWriting(false)}
+      onSubmit={form => {
+        const newPost = {
+          id: Date.now(),
+          category: form.category,
+          title: form.title,
+          content: form.content,
+          store: form.store,
+          storePrivate: false,
+          adminOnly: form.adminOnly,
+          nickname: form.nickname || "익명",
+          status: "접수",
+          likes: 0,
+          comments: 0,
+          createdAt: "방금 전",
+          createdOrder: Date.now(),
+        };
+
+        setPosts(prev => [newPost, ...prev]);
+
+        setIsWriting(false);
+      }}
+    />
+  );
+}
+
+  if (selectedPost) {
+    return (
+      <BoardDetail
+        post={selectedPost}
+        onBack={() => setSelectedPost(null)}
+      />
+    );
+  }
 
   return (
     <section className="panel">
@@ -99,7 +157,7 @@ export default function BeautyVoiceBoard() {
 
         <button
           type="button"
-          onClick={() => alert("글쓰기 화면은 다음 단계에서 연결할 예정입니다.")}
+          onClick={() => setIsWriting(true)}
         >
           <Plus size={18} />
           글쓰기
@@ -132,7 +190,7 @@ export default function BeautyVoiceBoard() {
           marginBottom: 24,
         }}
       >
-        {boardCategories.map(category => (
+        {categories.map(category => (
           <button
             key={category}
             type="button"
@@ -148,19 +206,55 @@ export default function BeautyVoiceBoard() {
 
       <div
         style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 14,
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: 14,
+            fontWeight: 700,
+          }}
+        >
+          {selectedCategory === "전체"
+            ? "전체"
+            : selectedCategory}{" "}
+          {sortedPosts.length}건
+        </p>
+
+        <select
+          value={sortType}
+          onChange={event => setSortType(event.target.value)}
+          style={{
+            width: "auto",
+            minWidth: 110,
+          }}
+        >
+          <option value="latest">최신순</option>
+          <option value="likes">공감순</option>
+        </select>
+      </div>
+
+      <div
+        style={{
           display: "grid",
           gap: 14,
         }}
       >
-        {filteredPosts.length === 0 ? (
+        {sortedPosts.length === 0 ? (
           <div className="card">
             <p>조건에 맞는 게시글이 없습니다.</p>
           </div>
         ) : (
-          filteredPosts.map(post => (
+          sortedPosts.map(post => (
             <article
               key={post.id}
               className="card"
+              onClick={() => setSelectedPost(post)}
               style={{ cursor: "pointer" }}
             >
               <div
