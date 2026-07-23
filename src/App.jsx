@@ -4,42 +4,28 @@ import supabase from "./api/supabase";
 import { normalizeVoice, loadVoices } from "./api/voiceApi";
 import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw } from "lucide-react";
 import "./style.css";
-import { dateLabel } from "./utils/date";
 import AdminFilters from "./components/admin/AdminFilters";
 import DashboardStats from "./components/admin/DashboardStats";
 import VoiceList from "./components/admin/VoiceList";
 import VoiceDetail from "./components/admin/VoiceDetail";
+import FAQ from "./components/faq/FAQ";
+import Notice from "./components/notice/Notice";
+import Thanks from "./components/thanks/Thanks";
+import Insight from "./components/insight/Insight";
+import BeautyVoiceBoard from "./components/board/BeautyVoiceBoard";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
-const stores = ["전체", "올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운", "미공개"];
-const writeStores = ["올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운", "미공개"];
-const categories = ["운영 건의", "교육 및 성장 제안/건의", "서비스 개선", "업무 고민", "불만", "기타"];
-const faqCategories = ["전체", "교육", "서비스", "시스템", "기타"];
+import {
+  stores,
+  writeStores,
+  categories,
+  faqCategories,
+} from "./utils/constants";
 
-function makeAnonId() {
-  return "BV-" + Math.floor(100 + Math.random() * 900);
-}
-
-function renderLinkedText(text) {
-  if (!text) return null;
-
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  const parts = text.split(urlRegex);
-
-  return parts.map((part, index) => {
-    if (urlRegex.test(part)) {
-      return (
-        <a key={index} href={part} target="_blank" rel="noreferrer">
-          {part}
-        </a>
-      );
-    }
-
-    return <span key={index}>{part}</span>;
-  });
-}
-
+import { dateLabel } from "./utils/date";
+import { makeAnonId } from "./utils/id";
+import { renderLinkedText } from "./utils/link";
 
 export default function App() {
   const [tab, setTab] = useState("home");
@@ -692,19 +678,7 @@ const groupedFaqs = useMemo(() => {
     await loadNotices();
   }
 
-  function loginAdmin(e) {
-    e.preventDefault();
-
-    if (adminPassword === ADMIN_PASSWORD) {
-      setAdminLoggedIn(true);
-      setAdminPassword("");
-      return;
-    }
-
-    alert("비밀번호가 일치하지 않습니다.");
-  }
-
-  async function checkMyReplies(e) {
+async function checkMyReplies(e) {
   e.preventDefault();
 
   if (!lookupAnonId.trim()) {
@@ -718,7 +692,7 @@ const groupedFaqs = useMemo(() => {
   }
 
   const matchedVoice = voices.find(
-    v =>
+    (v) =>
       v.anonId === lookupAnonId.trim() &&
       v.userPassword === lookupPassword.trim()
   );
@@ -728,13 +702,26 @@ const groupedFaqs = useMemo(() => {
     (matchedVoice.adminReply || matchedVoice.status === "답변완료") &&
     !matchedVoice.replySeen
   ) {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("voices")
       .update({ reply_seen: true })
-      .eq("id", matchedVoice.id);
+      .eq("id", matchedVoice.id)
+      .select("id, reply_seen")
+      .single();
 
-    if (!error) {
-      await loadData();
+    if (error) {
+      console.error("답변 읽음 처리 오류:", error);
+      alert("답변 읽음 처리 중 오류가 발생했습니다.");
+    } else {
+      console.log("답변 읽음 처리 성공:", data);
+
+      setVoices((prev) =>
+        prev.map((voice) =>
+          voice.id === matchedVoice.id
+            ? { ...voice, replySeen: true }
+            : voice
+        )
+      );
     }
   }
 
@@ -768,7 +755,7 @@ const groupedFaqs = useMemo(() => {
 
         <button onClick={() => setTab("home")} className={tab === "home" ? "active" : ""}><Bell size={18}/> 홈</button>
         <button onClick={() => setTab("notice")} className={tab === "notice" ? "active" : ""}><Bell size={18}/> 공지사항</button>
-        <button onClick={() => setTab("voice")} className={tab === "voice" ? "active" : ""}><MessageCircle size={18}/> 익명 Voice</button>
+        <button onClick={() => setTab("voice")} className={tab === "voice" ? "active" : ""}><MessageCircle size={18}/> Beauty Voice</button>
         <button onClick={() => { setTab("check"); setLookupDone(false); }} className={tab === "check" ? "active" : ""}>
           <CheckCircle2 size={18}/> 답변 확인 {answeredCount > 0 ? "🔴" : ""}
         </button>
@@ -884,130 +871,17 @@ const groupedFaqs = useMemo(() => {
         )}
 
         {tab === "notice" && (
-          <section className="panel">
-            <h2>공지사항</h2>
-            <p className="sub">교육 일정, 취합 안내, 주간 동향 등 주요 공지를 확인하는 공간입니다.</p>
+  <Notice
+    notices={notices}
+    selectedNotice={selectedNotice}
+    setSelectedNotice={setSelectedNotice}
+    renderLinkedText={renderLinkedText}
+  />
+)}
 
-            <section className="grid">
-              {notices.length === 0 && (
-                <div className="empty">등록된 공지가 없습니다.</div>
-              )}
-
-              {notices.map((n, i) => (
-                <button
-                  className="card"
-                  key={n.id}
-                  onClick={() => setSelectedNotice(n)}
-                  style={{ textAlign: "left" }}
-                >
-                  <h3>{i === 0 ? "📢" : "💡"} {n.title}</h3>
-                  <p className="sub">{dateLabel(n.created_at)}</p>
-                </button>
-              ))}
-            </section>
-
-            {selectedNotice && (
-              <div className="card" style={{ marginTop: 24 }}>
-                <div className="row">
-                  <div>
-                    <h2>{selectedNotice.title}</h2>
-                    <p className="sub">공지일 · {dateLabel(selectedNotice.created_at)}</p>
-                  </div>
-                  <button className="soft" onClick={() => setSelectedNotice(null)}>닫기</button>
-                </div>
-                <p style={{ whiteSpace: "pre-line", marginTop: 16 }}>
-                  {renderLinkedText(selectedNotice.body)}
-                </p>
-                {selectedNotice.image_url && (
-                  <a href={selectedNotice.image_url} target="_blank" rel="noreferrer">
-                    <img
-                      src={selectedNotice.image_url}
-                      alt="공지 이미지"
-                      style={{
-                        width: "100%",
-                        maxWidth: 520,
-                        maxHeight: 360,
-                        objectFit: "cover",
-                        borderRadius: 18,
-                        border: "1px solid #DDE5F3",
-                        marginTop: 16
-                      }}
-                    />
-                  </a>
-                )}
-              </div>
-            )}
-          </section>
-        )}
-
-        {tab === "voice" && (
-          <section className="panel">
-            <h2>익명 Voice 남기기</h2>
-            <p className="sub">건의사항, 고민, 질문, 칭찬까지 편하게 남겨주세요. 작성자는 노출되지 않습니다.</p>
-            <form onSubmit={submitVoice} className="form">
-              <label>제목</label>
-              <input
-                value={form.title}
-                onChange={e => setForm({...form, title: e.target.value})}
-                placeholder="예: 신규 서비스 운영 문의"
-              />
-
-              <label>소속 매장</label>
-              <select value={form.store} onChange={e => setForm({...form, store: e.target.value})}>
-                {writeStores.map(s => <option key={s}>{s}</option>)}
-              </select>
-
-              <label>카테고리</label>
-              <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
-                {categories.map(c => <option key={c}>{c}</option>)}
-              </select>
-
-              <label>내용</label>
-              <textarea
-                value={form.content}
-                onChange={e => setForm({...form, content: e.target.value})}
-                placeholder="작성자는 노출되지 않습니다."
-              />
-
-              <label>사진 첨부</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={e => setForm({...form, imageFile: e.target.files?.[0] || null})}
-              />
-              {form.imageFile && (
-                <p className="sub">첨부 이미지: {form.imageFile.name}</p>
-              )}
-
-              <label>답변 확인용 비밀번호</label>
-              <input
-                type="password"
-                value={form.userPassword}
-                onChange={e => setForm({...form, userPassword: e.target.value})}
-                placeholder="본인만 아는 비밀번호를 입력하세요"
-              />
-
-              <label>비밀번호 확인</label>
-              <input
-                type="password"
-                value={form.passwordConfirm}
-                onChange={e => setForm({...form, passwordConfirm: e.target.value})}
-                placeholder="비밀번호를 한 번 더 입력하세요"
-              />
-
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={form.wantsReply}
-                  onChange={e => setForm({...form, wantsReply: e.target.checked})}
-                />
-                운영진의 답변을 희망합니다.
-              </label>
-
-              <button type="submit"><Send size={18}/> 제출하기</button>
-            </form>
-          </section>
-        )}
+{tab === "voice" && (
+  <BeautyVoiceBoard />
+)}
 
         {tab === "done" && (
           <section className="panel center">
@@ -1175,214 +1049,41 @@ const groupedFaqs = useMemo(() => {
           </section>
         )}
 
-        {tab === "thanks" && (
-          <section className="panel">
-            <h2>Thanks Lounge</h2>
-            <p className="sub">동료에게 전하고 싶은 고마운 마음을 따뜻하게 남겨주세요.</p>
-
-            <form onSubmit={submitThanks} className="form" style={{ maxWidth: 560 }}>
-              <label>감사를 전할 대상</label>
-              <input
-                value={thanksForm.receiver}
-                onChange={e => setThanksForm({...thanksForm, receiver: e.target.value})}
-                placeholder="예: 올리브님"
-              />
-
-              <label>감사 내용</label>
-              <textarea
-                value={thanksForm.message}
-                onChange={e => setThanksForm({...thanksForm, message: e.target.value})}
-                placeholder="고마웠던 순간이나 칭찬하고 싶은 내용을 남겨주세요."
-              />
-
-              <button type="submit">Thanks 남기기</button>
-            </form>
-
-            <section className="grid" style={{ marginTop: 24 }}>
-              {thanksList.length === 0 && (
-                <div className="empty">아직 등록된 Thanks가 없습니다.</div>
-              )}
-
-              {thanksList.map(item => (
-                <div className="card" key={item.id}>
-                  <h3>❤️ {item.receiver}</h3>
-                  <p>{item.message}</p>
-                  <small>{dateLabel(item.created_at)}</small>
-                  <button
-                    className="soft"
-                    onClick={() => likeThanks(item)}
-                    disabled={likedThanksIds.includes(item.id)}
-                    style={{ marginTop: 12 }}
-                  >
-                    {likedThanksIds.includes(item.id) ? `❤️ 공감완료 ${item.likes || 0}` : `❤️ 공감 ${item.likes || 0}`}
-                  </button>
-                </div>
-              ))}
-            </section>
-          </section>
-        )}
+       {tab === "thanks" && (
+  <Thanks
+    thanksForm={thanksForm}
+    setThanksForm={setThanksForm}
+    submitThanks={submitThanks}
+    thanksList={thanksList}
+    likeThanks={likeThanks}
+    likedThanksIds={likedThanksIds}
+    dateLabel={dateLabel}
+  />
+)}
 
         {tab === "faq" && (
-          <section className="panel">
-            <h2>FAQ</h2>
-            <p className="sub">반복 문의와 운영 기준을 빠르게 확인할 수 있는 공간입니다.</p>
+  <FAQ
+    faqCategoryFilter={faqCategoryFilter}
+    setFaqCategoryFilter={setFaqCategoryFilter}
+    faqCategories={faqCategories}
+    faqKeyword={faqKeyword}
+    setFaqKeyword={setFaqKeyword}
+    filteredFaqs={filteredFaqs}
+    groupedFaqs={groupedFaqs}
+    openFaqCategories={openFaqCategories}
+    toggleFaqCategory={toggleFaqCategory}
+    openFaqId={openFaqId}
+    setOpenFaqId={setOpenFaqId}
+  />
+)}
 
-            <div className="form" style={{ maxWidth: 560 }}>
-              <label>FAQ 카테고리</label>
-              <select
-                value={faqCategoryFilter}
-                onChange={e => setFaqCategoryFilter(e.target.value)}
-              >
-                {faqCategories.map(category => (
-                  <option key={category}>{category}</option>
-                ))}
-              </select>
-
-              <label>FAQ 검색</label>
-              <input
-                value={faqKeyword}
-                onChange={e => setFaqKeyword(e.target.value)}
-                placeholder="예: 교육 신청, 뷰티맨션, Color Fit"
-              />
-            </div>
-<div className="faq-list">
-  {filteredFaqs.length === 0 && (
-    <div className="empty">검색 결과가 없습니다.</div>
-  )}
-
-  {groupedFaqs.map((group) => {
-    const isCategoryOpen = openFaqCategories.includes(group.category);
-
-    return (
-      <div className="faq-category" key={group.category}>
-        <button
-          type="button"
-          className="faq-category-header"
-          onClick={() => toggleFaqCategory(group.category)}
-        >
-          <span className="faq-category-title">
-            <span>{isCategoryOpen ? "▼" : "▶"}</span>
-            <span>{group.category}</span>
-          </span>
-
-          <span className="faq-category-count">
-            {group.items.length}개
-          </span>
-        </button>
-
-        {isCategoryOpen && (
-          <div className="faq-category-content">
-            {group.items.map((item) => {
-              const isOpen = openFaqId === item.id;
-
-              return (
-                <div className="faq-item" key={item.id}>
-                  <button
-                    type="button"
-                    className="faq-question-button"
-                    onClick={() =>
-                      setOpenFaqId(isOpen ? null : item.id)
-                    }
-                  >
-                    <span className="faq-question-text">
-                      <span className="faq-question-label">Q.</span>
-                      <span>{item.question}</span>
-                    </span>
-
-                    <span
-                      className={`faq-chevron ${isOpen ? "open" : ""}`}
-                    >
-                      ▼
-                    </span>
-                  </button>
-
-                  {isOpen && (
-                    <div className="faq-answer">
-                      <p>
-                        <strong>A.</strong> {item.answer}
-                      </p>
-                      <small>{dateLabel(item.created_at)}</small>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    );
-  })}
-</div>
-          </section>
-        )}
-
-        {tab === "insight" && (
-          <section className="panel">
-            <h2>BC 인사이트</h2>
-            <p className="sub">월간 만족도, VOC, 트렌드, 교육 이슈를 한눈에 확인하는 공간입니다.</p>
-
-            {insights.length === 0 && (
-              <div className="empty">등록된 BC 인사이트가 없습니다.</div>
-            )}
-
-            <section className="grid">
-              {insights.map(item => (
-                <button
-                  className="card"
-                  key={item.id}
-                  onClick={() => setSelectedInsight(item)}
-                  style={{ textAlign: "left" }}
-                >
-                  {item.image_url && (
-                    <img
-                      src={item.image_url}
-                      alt="BC 인사이트 카드뉴스"
-                      style={{
-                        width: "100%",
-                        height: 180,
-                        objectFit: "cover",
-                        borderRadius: 16,
-                        border: "1px solid #DDE5F3",
-                        marginBottom: 12
-                      }}
-                    />
-                  )}
-                  <h3>{item.title}</h3>
-                  <p>{item.month}</p>
-                  <small>{dateLabel(item.created_at)}</small>
-                </button>
-              ))}
-            </section>
-
-            {selectedInsight && (
-              <div className="card" style={{ marginTop: 24 }}>
-                <div className="row">
-                  <div>
-                    <h3>{selectedInsight.title}</h3>
-                    <p className="sub">{selectedInsight.month} · {dateLabel(selectedInsight.created_at)}</p>
-                  </div>
-                  <button className="soft" onClick={() => setSelectedInsight(null)}>닫기</button>
-                </div>
-                {selectedInsight.image_url && (
-                  <a href={selectedInsight.image_url} target="_blank" rel="noreferrer">
-                    <img
-                      src={selectedInsight.image_url}
-                      alt="BC 인사이트 카드뉴스"
-                      style={{
-                        width: "100%",
-                        maxWidth: 720,
-                        borderRadius: 20,
-                        border: "1px solid #DDE5F3",
-                        marginTop: 16
-                      }}
-                    />
-                  </a>
-                )}
-                <p style={{ whiteSpace: "pre-line", marginTop: 16 }}>{selectedInsight.content}</p>
-              </div>
-            )}
-          </section>
-        )}
+      {tab === "insight" && (
+  <Insight
+    insights={insights}
+    selectedInsight={selectedInsight}
+    setSelectedInsight={setSelectedInsight}
+  />
+)}
 
         {tab === "admin" && !adminLoggedIn && (
           <section className="panel center">
