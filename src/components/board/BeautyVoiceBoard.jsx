@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import BoardHeader from "./BoardHeader";
 
 import BoardDetail from "./BoardDetail";
 import WritePost from "./WritePost";
 import BoardCard from "./BoardCard";
 import SearchBar from "./SearchBar";
 import CategoryFilter from "./CategoryFilter";
+import { useAuth } from "../../contexts/AuthContext";
 
 import {
   getPosts,
@@ -22,6 +23,7 @@ const categories = [
 ];
 
 export default function BeautyVoiceBoard() {
+  const { user, isLoggedIn } = useAuth();
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,6 +83,11 @@ export default function BeautyVoiceBoard() {
   const handleCreatePost = async form => {
     if (isSubmitting) return;
 
+    if (!user) {
+    alert("로그인 후 글을 작성할 수 있습니다.");
+    return;
+  }
+
     try {
       setIsSubmitting(true);
 
@@ -93,6 +100,7 @@ export default function BeautyVoiceBoard() {
         status: "접수",
         image_url: null,
         likes: 0,
+	user_id: user.id,
       });
 
       if (!newPost.admin_only) {
@@ -135,33 +143,18 @@ export default function BeautyVoiceBoard() {
 
   return (
     <section className="panel">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <h2 style={{ marginBottom: 8 }}>
-            Beauty Voice
-          </h2>
+	<BoardHeader
+	  title="Beauty Voice"
+	  description="메이크업 BC의 생각과 경험이 모이는 소통 공간입니다."
+	  onWrite={() => {
+	    if (!isLoggedIn) {
+	      alert("로그인 후 글을 작성할 수 있습니다.");
+	      return;
+    }
 
-          <p className="sub">
-            메이크업 BC의 생각과 경험이 모이는 소통 공간입니다.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsWriting(true)}
-        >
-          <Plus size={18} />
-          글쓰기
-        </button>
-      </div>
+    setIsWriting(true);
+  }}
+/>
 
       <SearchBar
   value={keyword}

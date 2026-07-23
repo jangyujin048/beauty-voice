@@ -13,6 +13,10 @@ import Notice from "./components/notice/Notice";
 import Thanks from "./components/thanks/Thanks";
 import Insight from "./components/insight/Insight";
 import BeautyVoiceBoard from "./components/board/BeautyVoiceBoard";
+import LoginButton from "./components/auth/LoginButton";
+import MyVoice from "./components/myvoice/MyVoice";
+import { AuthProvider } from "./contexts/AuthContext";
+import AdminBoardPosts from "./components/admin/AdminBoardPosts";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -61,7 +65,7 @@ const [openFaqCategories, setOpenFaqCategories] = useState([
   const [reply, setReply] = useState("");
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
-  const [adminSubTab, setAdminSubTab] = useState("voice");
+const [adminSubTab, setAdminSubTab] = useState("board");
   const [lookupAnonId, setLookupAnonId] = useState("");
   const [lookupPassword, setLookupPassword] = useState("");
   const [lookupDone, setLookupDone] = useState(false);
@@ -382,6 +386,18 @@ const groupedFaqs = useMemo(() => {
     await loadData();
     setTab("done");
   }
+
+function loginAdmin(e) {
+  e.preventDefault();
+
+  if (adminPassword === ADMIN_PASSWORD) {
+    setAdminLoggedIn(true);
+    setAdminPassword("");
+    return;
+  }
+
+  alert("운영진 비밀번호가 일치하지 않습니다.");
+}
 
   function downloadVoiceCsv() {
     if (voices.length === 0) {
@@ -756,13 +772,26 @@ async function checkMyReplies(e) {
         <button onClick={() => setTab("home")} className={tab === "home" ? "active" : ""}><Bell size={18}/> 홈</button>
         <button onClick={() => setTab("notice")} className={tab === "notice" ? "active" : ""}><Bell size={18}/> 공지사항</button>
         <button onClick={() => setTab("voice")} className={tab === "voice" ? "active" : ""}><MessageCircle size={18}/> Beauty Voice</button>
-        <button onClick={() => { setTab("check"); setLookupDone(false); }} className={tab === "check" ? "active" : ""}>
-          <CheckCircle2 size={18}/> 답변 확인 {answeredCount > 0 ? "🔴" : ""}
-        </button>
+<button
+  onClick={() => setTab("myVoice")}
+  className={tab === "myVoice" ? "active" : ""}
+>
+  <Inbox size={18} />
+  <span>My Voice</span>
+</button>
+
         <button onClick={() => setTab("thanks")} className={tab === "thanks" ? "active" : ""}><Heart size={18}/> Thanks</button>
         <button onClick={() => setTab("faq")} className={tab === "faq" ? "active" : ""}><BookOpen size={18}/> FAQ</button>
         <button onClick={() => setTab("insight")} className={tab === "insight" ? "active" : ""}><BookOpen size={18}/> BC 인사이트</button>
         <button onClick={() => setTab("admin")} className={tab === "admin" ? "active" : ""}><Lock size={18}/> 운영진</button>
+<div
+  style={{
+    marginTop: "auto",
+    paddingTop: 20,
+  }}
+>
+  <LoginButton />
+</div>
       </aside>
 
       <main className="main">
@@ -883,6 +912,12 @@ async function checkMyReplies(e) {
   <BeautyVoiceBoard />
 )}
 
+{tab === "myVoice" && (
+  <MyVoice
+    onBack={() => setTab("voice")}
+  />
+)}
+
         {tab === "done" && (
           <section className="panel center">
             <CheckCircle2 size={56}/>
@@ -895,157 +930,6 @@ async function checkMyReplies(e) {
               </div>
             )}
             <button onClick={() => setTab("check")}>답변 확인으로 이동</button>
-          </section>
-        )}
-
-        {tab === "check" && (
-          <section className="panel">
-            <h2>답변 확인 {answeredCount > 0 ? "🔴" : ""}</h2>
-            <p className="sub">접수번호와 작성 시 입력한 비밀번호가 모두 일치해야 본인 문의와 운영진 답변을 확인할 수 있습니다.</p>
-            {answeredCount > 0 && (
-              <div className="card" style={{ marginBottom: 16 }}>
-                <h3>🔔 답변이 등록된 문의가 있습니다.</h3>
-                <p>접수번호와 비밀번호를 입력해 내 문의의 답변 여부를 확인해 주세요.</p>
-              </div>
-            )}
-
-            <form onSubmit={checkMyReplies} className="form" style={{ maxWidth: 420 }}>
-              <label>접수번호</label>
-              <input
-                value={lookupAnonId}
-                onChange={e => {
-                  setLookupAnonId(e.target.value);
-                  setLookupDone(false);
-                }}
-                placeholder="예: BV-851"
-              />
-
-              <label>답변 확인용 비밀번호</label>
-              <input
-                type="password"
-                value={lookupPassword}
-                onChange={e => {
-                  setLookupPassword(e.target.value);
-                  setLookupDone(false);
-                }}
-                placeholder="작성 시 입력한 비밀번호를 입력하세요"
-              />
-              <button type="submit">내 답변 확인하기</button>
-            </form>
-
-            {lookupDone && (
-              <div className="list" style={{ marginTop: 24 }}>
-                {myVoices.length === 0 && (
-                  <div className="empty">접수번호 또는 비밀번호가 일치하는 내용이 없습니다.</div>
-                )}
-
-                {myVoices.map(v => (
-                  <div
-                    key={v.id}
-                    className="card"
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      boxSizing: "border-box",
-                      padding: 0,
-                      overflow: "hidden"
-                    }}
-                  >
-                    <div style={{ display: "block", padding: 24, borderBottom: "1px solid #DDE5F3" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" }}>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "6px 12px",
-                              borderRadius: 999,
-                              background: "#E8EEF9",
-                              color: "#0E2D69",
-                              fontWeight: 700,
-                              marginBottom: 12
-                            }}
-                          >
-                            {v.status}
-                          </span>
-                          <h3 style={{ margin: "0 0 8px", wordBreak: "keep-all" }}>{v.title}</h3>
-                          <p className="sub" style={{ margin: 0 }}>
-                            {v.store} · {v.category} · {dateLabel(v.createdAt)}
-                          </p>
-                        </div>
-                        <small style={{ whiteSpace: "nowrap" }}>{v.anonId}</small>
-                      </div>
-                    </div>
-
-                    <div style={{ display: "block", padding: 24 }}>
-                      <div
-                        style={{
-                          display: "block",
-                          width: "100%",
-                          boxSizing: "border-box",
-                          background: "#F4F7FD",
-                          border: "1px solid #DDE5F3",
-                          borderRadius: 18,
-                          padding: 18,
-                          marginBottom: 18
-                        }}
-                      >
-                        <b>문의 내용</b>
-                        <p style={{ whiteSpace: "pre-line", margin: "10px 0 0", lineHeight: 1.7 }}>
-                          {v.content}
-                        </p>
-                      </div>
-
-                      {v.imageUrl && (
-                        <div style={{ display: "block", marginBottom: 22 }}>
-                          <b>첨부 이미지</b>
-                          <div style={{ display: "block", marginTop: 10 }}>
-                            <a href={v.imageUrl} target="_blank" rel="noreferrer">
-                              <img
-                                src={v.imageUrl}
-                                alt="첨부 이미지"
-                                style={{
-                                  display: "block",
-                                  width: "100%",
-                                  maxWidth: 420,
-                                  maxHeight: 280,
-                                  objectFit: "cover",
-                                  borderRadius: 18,
-                                  border: "1px solid #DDE5F3"
-                                }}
-                              />
-                            </a>
-                          </div>
-                          <small>이미지를 클릭하면 원본으로 확인할 수 있습니다.</small>
-                        </div>
-                      )}
-
-                      {v.adminReply ? (
-                        <div
-                          style={{
-                            display: "block",
-                            width: "100%",
-                            boxSizing: "border-box",
-                            background: "#0E2D69",
-                            color: "white",
-                            borderRadius: 18,
-                            padding: 18,
-                            marginTop: 12
-                          }}
-                        >
-                          <b>운영진 답변</b>
-                          <p style={{ whiteSpace: "pre-line", margin: "10px 0 8px", lineHeight: 1.7 }}>
-                            {v.adminReply}
-                          </p>
-                          <small style={{ color: "rgba(255,255,255,0.8)" }}>{dateLabel(v.repliedAt)}</small>
-                        </div>
-                      ) : (
-                        <div className="empty">아직 등록된 답변이 없습니다.</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </section>
         )}
 
@@ -1122,12 +1006,13 @@ async function checkMyReplies(e) {
             </div>
 
             <div className="filterTabs" style={{ marginBottom: 24 }}>
-              <button
-                onClick={() => setAdminSubTab("voice")}
-                className={adminSubTab === "voice" ? "active" : ""}
-              >
-                Voice 관리
-              </button>
+	<button
+	  onClick={() => setAdminSubTab("board")}
+	  className={
+	    adminSubTab === "board" ? "active" : ""}
+	>
+ 	 Beauty Voice 관리
+	</button>
               <button
                 onClick={() => setAdminSubTab("notice")}
                 className={adminSubTab === "notice" ? "active" : ""}
@@ -1147,63 +1032,9 @@ async function checkMyReplies(e) {
                 인사이트관리
               </button>
             </div>
-
-            {adminSubTab === "voice" && (
-              <>
-                <AdminFilters
-                  keyword={voiceKeyword}
-                  onKeywordChange={(value) => {
-                    setVoiceKeyword(value);
-                    setSelected(null);
-                  }}
-                  stores={stores}
-                  storeFilter={storeFilter}
-                  onStoreChange={(value) => {
-                    setStoreFilter(value);
-                    setSelected(null);
-                  }}
-                  categories={categories}
-                  categoryFilter={categoryFilter}
-                  onCategoryChange={(value) => {
-                    setCategoryFilter(value);
-                    setSelected(null);
-                  }}
-                  statusFilter={statusFilter}
-                  onStatusChange={(value) => {
-                    setStatusFilter(value);
-                    setSelected(null);
-                  }}
-                  onReset={() => {
-                    setVoiceKeyword("");
-                    setStoreFilter("전체");
-                    setCategoryFilter("전체");
-                    setStatusFilter("전체");
-                    setSelected(null);
-                  }}
-                />
-
-            <DashboardStats stats={stats} />
-
-            <div className="adminLayout">
-              <VoiceList
-                voices={filteredVoices}
-                selected={selected}
-                onSelect={(voice) => {
-                  setSelected(voice);
-                  setReply(voice.adminReply || "");
-                }}
-              />
-
-              <VoiceDetail
-                selected={selected}
-                reply={reply}
-                onReplyChange={setReply}
-                onSubmitReply={sendReply}
-                onStatusChange={changeStatus}
-              />
-            </div>
-              </>
-            )}
+	    {adminSubTab === "board" && (
+		  <AdminBoardPosts />
+		)}
 
             {adminSubTab === "notice" && (
               <>
@@ -1392,4 +1223,8 @@ async function checkMyReplies(e) {
   );
 }
 
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
