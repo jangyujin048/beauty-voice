@@ -5,6 +5,7 @@ import BoardDetail from "./BoardDetail";
 import WritePost from "./WritePost";
 import BoardCard from "./BoardCard";
 import SearchBar from "./SearchBar";
+import CategoryFilter from "./CategoryFilter";
 
 import {
   getPosts,
@@ -167,31 +168,11 @@ export default function BeautyVoiceBoard() {
   onChange={setKeyword}
 />
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-          marginBottom: 24,
-        }}
-      >
-        {categories.map(category => (
-          <button
-            key={category}
-            type="button"
-            onClick={() =>
-              setSelectedCategory(category)
-            }
-            className={
-              selectedCategory === category
-                ? "active"
-                : ""
-            }
-          >
-            {category}
-          </button>
-        ))}
-      </div>
+<CategoryFilter
+  categories={categories}
+  selectedCategory={selectedCategory}
+  onChange={setSelectedCategory}
+/>
 
       <div
         style={{
