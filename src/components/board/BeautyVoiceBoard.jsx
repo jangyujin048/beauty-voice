@@ -92,7 +92,6 @@ const handleCreatePost = async form => {
       title: form.title.trim(),
       content: form.content.trim(),
       store: form.store,
-      nickname: form.nickname.trim() || "익명",
       admin_only: form.adminOnly,
       status: "접수",
       image_url: null,
