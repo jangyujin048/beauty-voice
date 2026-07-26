@@ -1,3 +1,4 @@
+import supabase from "../api/supabase";
 import React, {
   useEffect,
   useMemo,
@@ -171,11 +172,28 @@ export default function AdminBoardPosts() {
     try {
       setIsSubmitting(true);
 
-      const newComment = await createComment({
-        postId: post.id,
-        content: trimmedComment,
-        writer: "운영진",
-      });
+const {
+  data: { session },
+  error: sessionError,
+} = await supabase.auth.getSession();
+
+if (sessionError) {
+  throw sessionError;
+}
+
+const currentUser = session?.user;
+
+if (!currentUser) {
+  throw new Error("로그인 정보가 없습니다.");
+}
+
+const newComment = await createComment({
+  postId: post.id,
+  content: trimmedComment,
+  writer: "운영진",
+  userId: currentUser.id,
+  isAdmin: true,
+});
 
       setCommentsByPost(previous => ({
         ...previous,
