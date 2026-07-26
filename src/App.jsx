@@ -17,6 +17,7 @@ import LoginButton from "./components/auth/LoginButton";
 import MyVoice from "./components/myvoice/MyVoice";
 import { AuthProvider } from "./contexts/AuthContext";
 import AdminBoardPosts from "./components/admin/AdminBoardPosts";
+import AdminContentManager from "./components/admin/AdminContentManager";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -35,7 +36,6 @@ export default function App() {
   const [tab, setTab] = useState("home");
   const [voices, setVoices] = useState([]);
   const [notices, setNotices] = useState([]);
-  const [noticeForm, setNoticeForm] = useState({ title: "", body: "", imageFile: null });
   const [selectedNotice, setSelectedNotice] = useState(null);
   const [selectedHomeNotice, setSelectedHomeNotice] = useState(null);
   const [thanksList, setThanksList] = useState([]);
@@ -48,7 +48,6 @@ export default function App() {
     }
   });
   const [faqs, setFaqs] = useState([]);
-  const [faqForm, setFaqForm] = useState({ category: "교육", question: "", answer: "" });
   const [faqKeyword, setFaqKeyword] = useState("");
   const [faqCategoryFilter, setFaqCategoryFilter] = useState("전체");
   const [openFaqId, setOpenFaqId] = useState(null);
@@ -59,7 +58,6 @@ const [openFaqCategories, setOpenFaqCategories] = useState([
   "기타",
 ]);
   const [insights, setInsights] = useState([]);
-  const [insightForm, setInsightForm] = useState({ month: "", title: "", content: "", imageFile: null });
   const [selectedInsight, setSelectedInsight] = useState(null);
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState("");
@@ -523,177 +521,6 @@ function loginAdmin(e) {
     await loadThanks();
   }
 
-  async function submitInsight(e) {
-    e.preventDefault();
-
-    if (!insightForm.month.trim()) return alert("월 정보를 입력해주세요.");
-    if (!insightForm.title.trim()) return alert("인사이트 제목을 입력해주세요.");
-    if (!insightForm.content.trim()) return alert("인사이트 내용을 입력해주세요.");
-
-    let insightImageUrl = "";
-
-    if (insightForm.imageFile) {
-      const fileExt = insightForm.imageFile.name.split(".").pop();
-      const fileName = `${Date.now()}-insight.${fileExt}`;
-      const filePath = `insights/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("voice-images")
-        .upload(filePath, insightForm.imageFile);
-
-      if (uploadError) {
-        alert("카드뉴스 이미지 업로드 중 오류가 발생했습니다.");
-        console.error(uploadError);
-        return;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from("voice-images")
-        .getPublicUrl(filePath);
-
-      insightImageUrl = publicUrlData.publicUrl;
-    }
-
-    const { error } = await supabase.from("bc_insights").insert({
-      month: insightForm.month.trim(),
-      title: insightForm.title.trim(),
-      content: insightForm.content.trim(),
-      image_url: insightImageUrl
-    });
-
-    if (error) {
-      alert("BC 인사이트 등록 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    setInsightForm({ month: "", title: "", content: "", imageFile: null });
-    await loadInsights();
-  }
-
-  async function deleteInsight(id) {
-    const ok = window.confirm("이 BC 인사이트를 삭제할까요?");
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("bc_insights")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert("BC 인사이트 삭제 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    if (selectedInsight?.id === id) setSelectedInsight(null);
-    await loadInsights();
-  }
-
-  async function submitFaq(e) {
-    e.preventDefault();
-
-    if (!faqForm.question.trim()) return alert("FAQ 질문을 입력해주세요.");
-    if (!faqForm.answer.trim()) return alert("FAQ 답변을 입력해주세요.");
-
-    const { error } = await supabase.from("faqs").insert({
-      category: faqForm.category,
-      question: faqForm.question.trim(),
-      answer: faqForm.answer.trim()
-    });
-
-    if (error) {
-      alert("FAQ 등록 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    setFaqForm({ category: "교육", question: "", answer: "" });
-    await loadFaqs();
-  }
-
-  async function deleteFaq(id) {
-    const ok = window.confirm("이 FAQ를 삭제할까요?");
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("faqs")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert("FAQ 삭제 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    await loadFaqs();
-  }
-
-  async function submitNotice(e) {
-    e.preventDefault();
-
-    if (!noticeForm.title.trim()) return alert("공지 제목을 입력해주세요.");
-    if (!noticeForm.body.trim()) return alert("공지 내용을 입력해주세요.");
-
-    let noticeImageUrl = "";
-
-    if (noticeForm.imageFile) {
-      const fileExt = noticeForm.imageFile.name.split(".").pop();
-      const fileName = `${Date.now()}-notice.${fileExt}`;
-      const filePath = `notices/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("voice-images")
-        .upload(filePath, noticeForm.imageFile);
-
-      if (uploadError) {
-        alert("공지 이미지 업로드 중 오류가 발생했습니다.");
-        console.error(uploadError);
-        return;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from("voice-images")
-        .getPublicUrl(filePath);
-
-      noticeImageUrl = publicUrlData.publicUrl;
-    }
-
-    const { error } = await supabase.from("notices").insert({
-      title: noticeForm.title.trim(),
-      body: noticeForm.body.trim(),
-      image_url: noticeImageUrl
-    });
-
-    if (error) {
-      alert("공지 등록 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    setNoticeForm({ title: "", body: "", imageFile: null });
-    await loadNotices();
-  }
-
-  async function deleteNotice(id) {
-    const ok = window.confirm("이 공지를 삭제할까요?");
-    if (!ok) return;
-
-    const { error } = await supabase
-      .from("notices")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      alert("공지 삭제 중 오류가 발생했습니다.");
-      console.error(error);
-      return;
-    }
-
-    await loadNotices();
-  }
-
 async function checkMyReplies(e) {
   e.preventDefault();
 
@@ -1036,185 +863,25 @@ async function checkMyReplies(e) {
 		  <AdminBoardPosts />
 		)}
 
-            {adminSubTab === "notice" && (
-              <>
-            <div className="card" style={{ marginBottom: 24 }}>
-              <h3>📢 공지사항 관리</h3>
-              <form onSubmit={submitNotice} className="form" style={{ marginTop: 12 }}>
-                <label>공지 제목</label>
-                <input
-                  value={noticeForm.title}
-                  onChange={e => setNoticeForm({...noticeForm, title: e.target.value})}
-                  placeholder="예: 신규 서비스 교육 신청 오픈"
-                />
-
-                <label>공지 내용</label>
-                <textarea
-                  value={noticeForm.body}
-                  onChange={e => setNoticeForm({...noticeForm, body: e.target.value})}
-                  placeholder="공지 내용을 입력하세요."
-                />
-
-                <label>공지 이미지 첨부</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => setNoticeForm({...noticeForm, imageFile: e.target.files?.[0] || null})}
-                />
-                {noticeForm.imageFile && (
-                  <p className="sub">첨부 이미지: {noticeForm.imageFile.name}</p>
-                )}
-
-                <button type="submit">공지 등록</button>
-              </form>
-
-              <div className="list" style={{ marginTop: 16 }}>
-                {notices.length === 0 && <div className="empty">등록된 공지가 없습니다.</div>}
-                {notices.map(n => (
-                  <div key={n.id} className="card" style={{ marginTop: 10 }}>
-                    <h3>{n.title}</h3>
-                    <small>{dateLabel(n.created_at)}</small>
-                    <p style={{ whiteSpace: "pre-line" }}>{renderLinkedText(n.body)}</p>
-                    {n.image_url && (
-                      <img
-                        src={n.image_url}
-                        alt="공지 이미지"
-                        style={{
-                          width: "100%",
-                          maxWidth: 360,
-                          maxHeight: 220,
-                          objectFit: "cover",
-                          borderRadius: 16,
-                          border: "1px solid #DDE5F3",
-                          marginTop: 10
-                        }}
-                      />
-                    )}
-                    <button className="soft" onClick={() => deleteNotice(n.id)}>삭제</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-              </>
-            )}
-
-            {adminSubTab === "faq" && (
-              <>
-            <div className="card" style={{ marginBottom: 24 }}>
-              <h3>FAQ 관리</h3>
-              <form onSubmit={submitFaq} className="form" style={{ marginTop: 12 }}>
-                <label>카테고리</label>
-                <select
-                  value={faqForm.category}
-                  onChange={e => setFaqForm({...faqForm, category: e.target.value})}
-                >
-                  {faqCategories.filter(category => category !== "전체").map(category => (
-                    <option key={category}>{category}</option>
-                  ))}
-                </select>
-
-                <label>질문</label>
-                <input
-                  value={faqForm.question}
-                  onChange={e => setFaqForm({...faqForm, question: e.target.value})}
-                  placeholder="예: 교육 신청은 어떻게 하나요?"
-                />
-
-                <label>답변</label>
-                <textarea
-                  value={faqForm.answer}
-                  onChange={e => setFaqForm({...faqForm, answer: e.target.value})}
-                  placeholder="FAQ 답변을 입력하세요."
-                />
-
-                <button type="submit">FAQ 등록</button>
-              </form>
-
-              <div className="list" style={{ marginTop: 16 }}>
-                {faqs.length === 0 && <div className="empty">등록된 FAQ가 없습니다.</div>}
-                {faqs.map(item => (
-                  <div key={item.id} className="card" style={{ marginTop: 10 }}>
-                    <small>{item.category || "기타"}</small>
-                    <h3>Q. {item.question}</h3>
-                    <p>A. {item.answer}</p>
-                    <button className="soft" onClick={() => deleteFaq(item.id)}>삭제</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-              </>
-            )}
-
-            {adminSubTab === "insight" && (
-              <>
-            <div className="card" style={{ marginBottom: 24 }}>
-              <h3>📊 BC 인사이트 관리</h3>
-              <form onSubmit={submitInsight} className="form" style={{ marginTop: 12 }}>
-                <label>월</label>
-                <input
-                  value={insightForm.month}
-                  onChange={e => setInsightForm({...insightForm, month: e.target.value})}
-                  placeholder="예: 2026년 07월"
-                />
-
-                <label>제목</label>
-                <input
-                  value={insightForm.title}
-                  onChange={e => setInsightForm({...insightForm, title: e.target.value})}
-                  placeholder="예: 2026년 7월 BC 인사이트"
-                />
-
-                <label>내용</label>
-                <textarea
-                  value={insightForm.content}
-                  onChange={e => setInsightForm({...insightForm, content: e.target.value})}
-                  placeholder="만족도, VOC, 트렌드, 교육 일정 등을 입력하세요."
-                />
-
-                <label>카드뉴스 이미지 첨부</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => setInsightForm({...insightForm, imageFile: e.target.files?.[0] || null})}
-                />
-                {insightForm.imageFile && (
-                  <p className="sub">첨부 이미지: {insightForm.imageFile.name}</p>
-                )}
-
-                <button type="submit">BC 인사이트 등록</button>
-              </form>
-
-              <div className="list" style={{ marginTop: 16 }}>
-                {insights.length === 0 && <div className="empty">등록된 BC 인사이트가 없습니다.</div>}
-                {insights.map(item => (
-                  <div key={item.id} className="card" style={{ marginTop: 10 }}>
-                    <h3>{item.title}</h3>
-                    <p>{item.month}</p>
-                    {item.image_url && (
-                      <img
-                        src={item.image_url}
-                        alt="BC 인사이트 카드뉴스"
-                        style={{
-                          width: "100%",
-                          maxWidth: 360,
-                          maxHeight: 220,
-                          objectFit: "cover",
-                          borderRadius: 16,
-                          border: "1px solid #DDE5F3",
-                          marginTop: 10
-                        }}
-                      />
-                    )}
-                    <p style={{ whiteSpace: "pre-line" }}>{item.content}</p>
-                    <button className="soft" onClick={() => deleteInsight(item.id)}>삭제</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-              </>
+            {["notice", "faq", "insight"].includes(adminSubTab) && (
+              <AdminContentManager
+                type={adminSubTab}
+                items={
+                  adminSubTab === "notice"
+                    ? notices
+                    : adminSubTab === "faq"
+                      ? faqs
+                      : insights
+                }
+                onReload={
+                  adminSubTab === "notice"
+                    ? loadNotices
+                    : adminSubTab === "faq"
+                      ? loadFaqs
+                      : loadInsights
+                }
+                faqCategories={faqCategories}
+              />
             )}
           </section>
         )}

@@ -49,9 +49,17 @@ export default function Notice({
             <div>
               <h2>{selectedNotice.title}</h2>
 
-              <p className="sub">
-                공지일 · {dateLabel(selectedNotice.created_at)}
-              </p>
+              <div className="sub">
+	  <div>
+	    공지일 · {dateLabel(selectedNotice.created_at)}
+	  </div>
+
+	  {selectedNotice.updated_at && (
+	    <div style={{ marginTop: 4 }}>
+	      ✏ 수정됨 · {dateLabel(selectedNotice.updated_at)}
+	    </div>
+	  )}
+	</div>
             </div>
 
             <button

@@ -134,10 +134,13 @@ export default function BeautyVoiceBoard() {
 
   if (selectedPost) {
     return (
-      <BoardDetail
-        post={selectedPost}
-        onBack={() => setSelectedPost(null)}
-      />
+	<BoardDetail
+  	post={selectedPost}
+  	onBack={async () => {
+    	setSelectedPost(null);
+    	await loadPosts();
+  	}}
+	/>
     );
   }
 

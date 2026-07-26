@@ -105,8 +105,8 @@ export default function BoardCard({
               gap: 5,
             }}
           >
-            <MessageCircle size={15} />
-            0
+	<MessageCircle size={15} />
+	{post.comment_count ?? 0}
           </span>
         </div>
       </div>

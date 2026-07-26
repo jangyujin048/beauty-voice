@@ -98,7 +98,20 @@ export default function FAQ({
                             <p>
                               <strong>A.</strong> {item.answer}
                             </p>
-                            <small>{dateLabel(item.created_at)}</small>
+                            <div>
+  <small>
+    등록일 · {dateLabel(item.created_at)}
+  </small>
+
+  {item.updated_at && (
+    <>
+      <br />
+      <small>
+        ✏ 수정됨 · {dateLabel(item.updated_at)}
+      </small>
+    </>
+  )}
+</div>
                           </div>
                         )}
                       </div>

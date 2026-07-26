@@ -2,11 +2,15 @@ import supabase from "../api/supabase";
 
 /**
  * 공개 게시글 조회
+ * 게시글별 댓글 개수 포함
  */
 export async function getPosts() {
   const { data, error } = await supabase
     .from("beauty_voice_posts")
-    .select("*")
+    .select(`
+      *,
+      beauty_voice_comments(count)
+    `)
     .eq("admin_only", false)
     .order("created_at", {
       ascending: false,
@@ -16,7 +20,12 @@ export async function getPosts() {
     throw error;
   }
 
-  return data ?? [];
+  return (data ?? []).map(post => ({
+    ...post,
+
+    comment_count:
+      post.beauty_voice_comments?.[0]?.count ?? 0,
+  }));
 }
 
 /**
@@ -76,4 +85,26 @@ export async function getAdminPosts() {
   }
 
   return data ?? [];
+}
+
+/**
+ * 게시글 상태 변경
+ */
+export async function updatePostStatus(
+  postId,
+  status
+) {
+  const { data, error } = await supabase
+    .from("beauty_voice_posts")
+    .update({
+      status,
+    })
+    .eq("id", postId)
+    .select();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.[0] ?? null;
 }
