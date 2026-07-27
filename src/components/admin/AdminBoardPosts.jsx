@@ -183,8 +183,25 @@ if (sessionError) {
 
 const currentUser = session?.user;
 
-if (!currentUser) {
-  throw new Error("로그인 정보가 없습니다.");
+let resolvedUserId = userId;
+
+if (!resolvedUserId) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw sessionError;
+  }
+
+  resolvedUserId = session?.user?.id;
+}
+
+if (!resolvedUserId) {
+  throw new Error(
+    "로그인 세션을 확인할 수 없습니다. 로그아웃 후 다시 로그인해주세요."
+  );
 }
 
 const newComment = await createComment({
@@ -228,9 +245,7 @@ const newComment = await createComment({
     } catch (error) {
   console.error("운영진 답변 등록 오류:", error);
 
-  alert(
-    `답변을 등록하지 못했습니다.\n${error?.message || "알 수 없는 오류"}`
-  );
+  alert(`답변을 등록하지 못했습니다.\n${error?.message || "알 수 없는 오류"}` );
 }
 
   return (
