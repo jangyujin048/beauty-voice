@@ -1,4 +1,4 @@
-import supabase from "../api/supabase";
+import supabase from "../../api/supabase";
 import React, {
   useEffect,
   useMemo,
@@ -161,92 +161,85 @@ export default function AdminBoardPosts() {
     await loadComments(postId);
   };
 
-  const handleSubmitComment = async post => {
-    const trimmedComment = commentText.trim();
+const handleSubmitComment = async post => {
+  const trimmedComment = commentText.trim();
 
-    if (!trimmedComment) {
-      alert("답변 내용을 입력해주세요.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-const {
-  data: { session },
-  error: sessionError,
-} = await supabase.auth.getSession();
-
-if (sessionError) {
-  throw sessionError;
-}
-
-const currentUser = session?.user;
-
-let resolvedUserId = userId;
-
-if (!resolvedUserId) {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw sessionError;
+  if (!trimmedComment) {
+    alert("답변 내용을 입력해주세요.");
+    return;
   }
 
-  resolvedUserId = session?.user?.id;
-}
+  try {
+    setIsSubmitting(true);
 
-if (!resolvedUserId) {
-  throw new Error(
-    "로그인 세션을 확인할 수 없습니다. 로그아웃 후 다시 로그인해주세요."
-  );
-}
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-const newComment = await createComment({
-  postId: post.id,
-  content: trimmedComment,
-  writer: "운영진",
-  userId: currentUser.id,
-  isAdmin: true,
-});
+    if (sessionError) {
+      throw sessionError;
+    }
 
-      setCommentsByPost(previous => ({
-        ...previous,
-        [post.id]: [
-          ...(previous[post.id] ?? []),
-          newComment,
-        ],
-      }));
+    const currentUser = session?.user;
 
-      if (post.status !== "답변완료") {
-        const updatedPost =
-          await updatePostStatus(
-            post.id,
-            "답변완료"
-          );
+    if (!currentUser) {
+      throw new Error(
+        "로그인 세션을 확인할 수 없습니다. 로그아웃 후 다시 로그인해주세요."
+      );
+    }
 
-        setPosts(previous =>
-          previous.map(item =>
-            item.id === post.id
-              ? {
-                  ...item,
-                  ...updatedPost,
-                }
-              : item
-          )
-        );
-      }
+    const newComment = await createComment({
+      postId: post.id,
+      content: trimmedComment,
+      writer: "운영진",
+      userId: currentUser.id,
+      isAdmin: true,
+    });
 
-      setCommentText("");
+    setCommentsByPost(previous => ({
+      ...previous,
+      [post.id]: [
+        ...(previous[post.id] ?? []),
+        newComment,
+      ],
+    }));
 
-      alert("답변이 등록되었습니다.");
-    } catch (error) {
-  console.error("운영진 답변 등록 오류:", error);
+    if (post.status !== "답변완료") {
+      const updatedPost = await updatePostStatus(
+        post.id,
+        "답변완료"
+      );
 
-  alert(`답변을 등록하지 못했습니다.\n${error?.message || "알 수 없는 오류"}` );
-}
+      setPosts(previous =>
+        previous.map(item =>
+          item.id === post.id
+            ? {
+                ...item,
+                ...updatedPost,
+              }
+            : item
+        )
+      );
+    }
+
+    setCommentText("");
+    alert("답변이 등록되었습니다.");
+  } catch (error) {
+    console.error(
+      "운영진 답변 등록 오류:",
+      error
+    );
+
+    alert(
+      `답변을 등록하지 못했습니다.\n${
+        error?.message || "알 수 없는 오류"
+      }`
+    );
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div>

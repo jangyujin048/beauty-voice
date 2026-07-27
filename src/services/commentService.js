@@ -9,7 +9,9 @@ export async function getComments(postId) {
       ascending: true,
     });
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   return data ?? [];
 }
@@ -24,10 +26,11 @@ export async function createComment({
   const trimmedContent = content?.trim();
 
   if (!trimmedContent) {
-    throw new Error("댓글 내용을 입력해주세요.");
+    throw new Error(
+      "댓글 내용을 입력해주세요."
+    );
   }
 
-  // 전달받은 userId가 없으면 현재 로그인 세션에서 직접 확인
   let resolvedUserId = userId;
 
   if (!resolvedUserId) {
@@ -63,7 +66,9 @@ export async function createComment({
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   return data;
 }
