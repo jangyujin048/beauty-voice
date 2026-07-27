@@ -226,15 +226,12 @@ const newComment = await createComment({
 
       alert("답변이 등록되었습니다.");
     } catch (error) {
-      console.error(error);
+  console.error("운영진 답변 등록 오류:", error);
 
-      alert(
-        "답변을 등록하지 못했습니다. Supabase 권한 설정을 확인해주세요."
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  alert(
+    `답변을 등록하지 못했습니다.\n${error?.message || "알 수 없는 오류"}`
+  );
+}
 
   return (
     <div>
