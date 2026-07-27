@@ -4,112 +4,167 @@ import {
   ThumbsUp,
 } from "lucide-react";
 
+const MAX_PREVIEW_LENGTH = 150;
+
+const styles = {
+  card: {
+    cursor: "pointer",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  category: {
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  status: {
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  title: {
+    marginBottom: 8,
+  },
+  preview: {
+    marginBottom: 16,
+    whiteSpace: "pre-line",
+    overflowWrap: "anywhere",
+  },
+  footer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  metadata: {
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+    fontSize: 13,
+  },
+  counters: {
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    fontSize: 13,
+  },
+  counter: {
+    display: "flex",
+    alignItems: "center",
+    gap: 5,
+  },
+};
+
+function formatDate(value) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleDateString("ko-KR");
+}
+
+function getPreview(content) {
+  const normalizedContent = content?.trim() ?? "";
+
+  if (normalizedContent.length <= MAX_PREVIEW_LENGTH) {
+    return normalizedContent;
+  }
+
+  return `${normalizedContent.slice(0, MAX_PREVIEW_LENGTH)}…`;
+}
+
 export default function BoardCard({
   post,
   onClick,
 }) {
-  const formattedDate = post.created_at
-    ? new Date(post.created_at).toLocaleDateString("ko-KR")
-    : "";
+  const formattedDate = formatDate(post?.created_at);
+  const preview = getPreview(post?.content);
+  const status = post?.status || "접수";
+
+  const handleKeyDown = event => {
+    if (
+      event.key === "Enter" ||
+      event.key === " "
+    ) {
+      event.preventDefault();
+      onClick?.();
+    }
+  };
 
   return (
     <article
       className="card"
+      role="button"
+      tabIndex={0}
+      aria-label={`${post?.title || "게시글"} 상세 보기`}
       onClick={onClick}
-      style={{ cursor: "pointer" }}
+      onKeyDown={handleKeyDown}
+      style={styles.card}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-          }}
-        >
-          {post.category}
+      <div style={styles.header}>
+        <span style={styles.category}>
+          {post?.category || "기타"}
         </span>
 
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          {post.status}
+        <span style={styles.status}>
+          {status}
         </span>
       </div>
 
-      <h3 style={{ marginBottom: 8 }}>
-        {post.title}
+      <h3 style={styles.title}>
+        {post?.title || "제목 없음"}
       </h3>
 
       <p
         className="sub"
-        style={{ marginBottom: 16 }}
+        style={styles.preview}
       >
-        {post.content}
+        {preview || "내용이 없습니다."}
       </p>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 13,
-          }}
-        >
-          <span>{post.store}</span>
-          <span>·</span>
-          <span>{formattedDate}</span>
+      <footer style={styles.footer}>
+        <div style={styles.metadata}>
+          <span>{post?.store || "매장 정보 없음"}</span>
+
+          {formattedDate && (
+            <>
+              <span aria-hidden="true">·</span>
+              <time dateTime={post.created_at}>
+                {formattedDate}
+              </time>
+            </>
+          )}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-            fontSize: 13,
-          }}
-        >
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <ThumbsUp size={15} />
-            {post.likes ?? 0}
+        <div style={styles.counters}>
+          <span style={styles.counter}>
+            <ThumbsUp
+              size={15}
+              aria-hidden="true"
+            />
+            <span>{post?.likes ?? 0}</span>
           </span>
 
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-	<MessageCircle size={15} />
-	{post.comment_count ?? 0}
+          <span style={styles.counter}>
+            <MessageCircle
+              size={15}
+              aria-hidden="true"
+            />
+            <span>{post?.comment_count ?? 0}</span>
           </span>
         </div>
-      </div>
+      </footer>
     </article>
   );
 }

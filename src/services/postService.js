@@ -108,3 +108,40 @@ export async function updatePostStatus(
 
   return data?.[0] ?? null;
 }
+
+/**
+ * 게시글 수정
+ */
+export async function updatePost(
+  postId,
+  updateData
+) {
+  const { data, error } = await supabase
+    .from("beauty_voice_posts")
+    .update({
+      ...updateData,
+    })
+    .eq("id", postId)
+    .select()
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * 게시글 삭제
+ */
+export async function deletePost(postId) {
+  const { error } = await supabase
+    .from("beauty_voice_posts")
+    .delete()
+    .eq("id", postId);
+
+  if (error) {
+    throw error;
+  }
+}

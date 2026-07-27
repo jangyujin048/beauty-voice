@@ -1,22 +1,166 @@
 import React, {
+  useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
 import {
   ArrowLeft,
-  MessageCircle,
-  ThumbsUp,
+  Check,
   Lock,
+  MessageCircle,
+  Pencil,
   Send,
+  ThumbsUp,
+  Trash2,
+  X,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
-
 import {
   createComment,
   getComments,
 } from "../../services/commentService";
+import {
+  deletePost,
+  updatePost,
+} from "../../services/postService";
+
+const LIKE_STORAGE_KEY =
+  "beauty_voice_liked_post_ids";
+
+const CATEGORIES = [
+  "질문",
+  "운영 제안",
+  "도움 요청",
+  "아이디어",
+  "기타",
+];
+
+const STORES = [
+  "올리브영N 성수",
+  "올리브영 뷰티 맨션 성수",
+  "올리브영 센트럴 강남 타운",
+];
+
+const styles = {
+  backButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 20,
+  },
+  postHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  category: {
+    fontSize: 13,
+    fontWeight: 700,
+  },
+  status: {
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  title: {
+    marginBottom: 14,
+    overflowWrap: "anywhere",
+  },
+  metadata: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+    marginBottom: 22,
+    fontSize: 13,
+  },
+  privateStore: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+  },
+  content: {
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    lineHeight: 1.8,
+    marginBottom: 28,
+  },
+  actions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+  actionButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+  },
+  dangerButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+  },
+  commentsSection: {
+    marginTop: 28,
+  },
+  commentsTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 7,
+    marginBottom: 16,
+  },
+  commentList: {
+    display: "grid",
+    gap: 12,
+    marginBottom: 20,
+  },
+  commentHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+    flexWrap: "wrap",
+  },
+  commentDate: {
+    marginLeft: "auto",
+    fontSize: 12,
+    color: "#777",
+  },
+  commentContent: {
+    lineHeight: 1.6,
+    whiteSpace: "pre-line",
+    overflowWrap: "anywhere",
+    margin: 0,
+  },
+  badge: {
+    padding: "4px 8px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 800,
+  },
+  adminBadge: {
+    background: "#f1edff",
+    color: "#6147a8",
+  },
+  writerBadge: {
+    background: "#e8eef9",
+    color: "#0e2d69",
+  },
+  myBadge: {
+    background: "#eef7ff",
+    color: "#2463c5",
+  },
+  editActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+  },
+};
 
 function getAnonymousBcNumber(postId, userId) {
   if (!postId || !userId) {
@@ -24,289 +168,641 @@ function getAnonymousBcNumber(postId, userId) {
   }
 
   const value = `${postId}-${userId}`;
-
   let hash = 2166136261;
 
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
 
-  // BC#100부터 BC#999 사이의 번호 생성
   return (hash >>> 0) % 900 + 100;
+}
+
+function formatDate(value, includeTime = false) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return includeTime
+    ? date.toLocaleString("ko-KR")
+    : date.toLocaleDateString("ko-KR");
+}
+
+function readLikedPostIds() {
+  try {
+    const storedValue =
+      localStorage.getItem(LIKE_STORAGE_KEY);
+    const parsedValue = JSON.parse(
+      storedValue || "[]"
+    );
+
+    return Array.isArray(parsedValue)
+      ? parsedValue
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLikedPostIds(postIds) {
+  try {
+    localStorage.setItem(
+      LIKE_STORAGE_KEY,
+      JSON.stringify(postIds)
+    );
+  } catch {
+    // localStorage 사용이 제한된 환경에서는
+    // 현재 화면 상태만 유지합니다.
+  }
+}
+
+function CommentBadge({
+  type,
+  children,
+}) {
+  const typeStyle = {
+    admin: styles.adminBadge,
+    writer: styles.writerBadge,
+    mine: styles.myBadge,
+  }[type];
+
+  return (
+    <span
+      style={{
+        ...styles.badge,
+        ...typeStyle,
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
 export default function BoardDetail({
   post,
+  currentUser,
   onBack,
+  onPostUpdated,
+  onPostDeleted,
 }) {
   const {
-    user,
+    user: authUser,
     isLoggedIn,
   } = useAuth();
 
-  const [liked, setLiked] =
+  const user = currentUser ?? authUser;
+  const isOwner =
+    Boolean(user?.id) &&
+    user.id === post?.user_id;
+
+  const [currentPost, setCurrentPost] =
+    useState(post);
+  const [comments, setComments] = useState([]);
+  const [comment, setComment] = useState("");
+
+  const [isLiked, setIsLiked] =
     useState(false);
-
-  const [likeCount, setLikeCount] =
-    useState(post.likes ?? 0);
-
-  const [comment, setComment] =
-    useState("");
-
-  const [comments, setComments] =
-    useState([]);
+  const [isLikeSubmitting, setIsLikeSubmitting] =
+    useState(false);
 
   const [isCommentLoading, setIsCommentLoading] =
     useState(true);
+  const [
+    isCommentSubmitting,
+    setIsCommentSubmitting,
+  ] = useState(false);
 
-  const [isCommentSubmitting, setIsCommentSubmitting] =
+  const [isEditing, setIsEditing] =
+    useState(false);
+  const [isSaving, setIsSaving] =
+    useState(false);
+  const [isDeleting, setIsDeleting] =
     useState(false);
 
-  useEffect(() => {
-    loadComments();
-  }, [post.id]);
+  const [editForm, setEditForm] = useState({
+    category: post?.category || CATEGORIES[0],
+    title: post?.title || "",
+    content: post?.content || "",
+    store: post?.store || STORES[0],
+  });
 
-  const loadComments = async () => {
+  useEffect(() => {
+    setCurrentPost(post);
+    setEditForm({
+      category: post?.category || CATEGORIES[0],
+      title: post?.title || "",
+      content: post?.content || "",
+      store: post?.store || STORES[0],
+    });
+    setIsEditing(false);
+  }, [post]);
+
+  useEffect(() => {
+    const likedPostIds = readLikedPostIds();
+    setIsLiked(likedPostIds.includes(post?.id));
+  }, [post?.id]);
+
+  const loadComments = useCallback(async () => {
+    if (!post?.id) {
+      setComments([]);
+      setIsCommentLoading(false);
+      return;
+    }
+
     try {
       setIsCommentLoading(true);
 
-      const data = await getComments(
-        post.id
-      );
-
-      setComments(data ?? []);
+      const data = await getComments(post.id);
+      setComments(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error(
-        "댓글 조회 오류",
+        "Beauty Voice 댓글 조회 오류:",
         error
       );
-
-      alert(
-        "댓글을 불러오지 못했습니다."
-      );
+      alert("댓글을 불러오지 못했습니다.");
     } finally {
       setIsCommentLoading(false);
     }
-  };
+  }, [post?.id]);
 
-  const handleLike = () => {
-    setLiked(previous => !previous);
+  useEffect(() => {
+    loadComments();
+  }, [loadComments]);
 
-    setLikeCount(previous =>
-      liked
-        ? Math.max(previous - 1, 0)
-        : previous + 1
-    );
+  const formattedPostDate = useMemo(
+    () =>
+      formatDate(
+        currentPost?.created_at ||
+          currentPost?.createdAt
+      ),
+    [
+      currentPost?.created_at,
+      currentPost?.createdAt,
+    ]
+  );
+
+  const updateCurrentPost = useCallback(
+    updatedPost => {
+      setCurrentPost(previous => ({
+        ...previous,
+        ...updatedPost,
+      }));
+
+      onPostUpdated?.({
+        ...currentPost,
+        ...updatedPost,
+      });
+    },
+    [currentPost, onPostUpdated]
+  );
+
+  const handleLike = async () => {
+    if (!isLoggedIn || !user?.id) {
+      alert("로그인 후 공감할 수 있습니다.");
+      return;
+    }
+
+    if (isLikeSubmitting || !currentPost?.id) {
+      return;
+    }
+
+    const nextIsLiked = !isLiked;
+    const previousLikeCount =
+      currentPost.likes ?? 0;
+    const nextLikeCount = nextIsLiked
+      ? previousLikeCount + 1
+      : Math.max(previousLikeCount - 1, 0);
+
+    setIsLiked(nextIsLiked);
+    setCurrentPost(previous => ({
+      ...previous,
+      likes: nextLikeCount,
+    }));
+    setIsLikeSubmitting(true);
+
+    try {
+      const updatedPost = await updatePost(
+        currentPost.id,
+        {
+          likes: nextLikeCount,
+        }
+      );
+
+      const likedPostIds = readLikedPostIds();
+      const nextLikedPostIds = nextIsLiked
+        ? Array.from(
+            new Set([
+              ...likedPostIds,
+              currentPost.id,
+            ])
+          )
+        : likedPostIds.filter(
+            postId => postId !== currentPost.id
+          );
+
+      writeLikedPostIds(nextLikedPostIds);
+      updateCurrentPost(updatedPost);
+    } catch (error) {
+      console.error(
+        "Beauty Voice 공감 처리 오류:",
+        error
+      );
+
+      setIsLiked(!nextIsLiked);
+      setCurrentPost(previous => ({
+        ...previous,
+        likes: previousLikeCount,
+      }));
+
+      alert("공감을 처리하지 못했습니다.");
+    } finally {
+      setIsLikeSubmitting(false);
+    }
   };
 
   const handleSubmitComment = async event => {
     event.preventDefault();
 
-    if (!isLoggedIn || !user) {
-      alert(
-        "로그인 후 댓글을 작성할 수 있습니다."
-      );
+    if (!isLoggedIn || !user?.id) {
+      alert("로그인 후 댓글을 작성할 수 있습니다.");
       return;
     }
 
-    const trimmedComment =
-      comment.trim();
+    const trimmedComment = comment.trim();
 
     if (!trimmedComment) {
-      alert(
-        "댓글 내용을 입력해주세요."
-      );
+      alert("댓글 내용을 입력해주세요.");
       return;
     }
 
-    if (isCommentSubmitting) return;
+    if (isCommentSubmitting) {
+      return;
+    }
 
     try {
       setIsCommentSubmitting(true);
 
-      const newComment =
-        await createComment({
-          postId: post.id,
-          content: trimmedComment,
-
-          // 익명 게시판이므로 실제 이름은 저장하지 않음
-          writer: "익명 BC",
-
-          userId: user.id,
-          isAdmin: false,
-        });
+      const newComment = await createComment({
+        postId: currentPost.id,
+        content: trimmedComment,
+        writer: "익명 BC",
+        userId: user.id,
+        isAdmin: false,
+      });
 
       setComments(previous => [
         ...previous,
         newComment,
       ]);
-
       setComment("");
+
+      onPostUpdated?.({
+        ...currentPost,
+        comment_count: comments.length + 1,
+      });
     } catch (error) {
       console.error(
-        "댓글 등록 오류",
+        "Beauty Voice 댓글 등록 오류:",
         error
       );
-
-      alert(
-        "댓글을 등록하지 못했습니다."
-      );
+      alert("댓글을 등록하지 못했습니다.");
     } finally {
       setIsCommentSubmitting(false);
     }
   };
 
-  const formattedPostDate =
-    post.created_at
-      ? new Date(
-          post.created_at
-        ).toLocaleDateString("ko-KR")
-      : post.createdAt || "";
+  const handleEditChange = event => {
+    const {
+      name,
+      value,
+    } = event.target;
+
+    setEditForm(previous => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const handleCancelEdit = () => {
+    setEditForm({
+      category:
+        currentPost?.category || CATEGORIES[0],
+      title: currentPost?.title || "",
+      content: currentPost?.content || "",
+      store: currentPost?.store || STORES[0],
+    });
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = async event => {
+    event.preventDefault();
+
+    const title = editForm.title.trim();
+    const content = editForm.content.trim();
+
+    if (!title || !content) {
+      alert("제목과 내용을 모두 입력해주세요.");
+      return;
+    }
+
+    if (!isOwner || isSaving) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const updatedPost = await updatePost(
+        currentPost.id,
+        {
+          category: editForm.category,
+          title,
+          content,
+          store: editForm.store,
+        }
+      );
+
+      updateCurrentPost(updatedPost);
+      setIsEditing(false);
+      alert("게시글이 수정되었습니다.");
+    } catch (error) {
+      console.error(
+        "Beauty Voice 게시글 수정 오류:",
+        error
+      );
+      alert("게시글을 수정하지 못했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!isOwner || isDeleting) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      "이 게시글을 삭제할까요?\n삭제한 글은 복구할 수 없습니다."
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await deletePost(currentPost.id);
+      onPostDeleted?.(currentPost.id);
+    } catch (error) {
+      console.error(
+        "Beauty Voice 게시글 삭제 오류:",
+        error
+      );
+      alert("게시글을 삭제하지 못했습니다.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (!currentPost) {
+    return (
+      <section className="panel">
+        <div className="empty">
+          게시글 정보를 확인할 수 없습니다.
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="panel">
       <button
         type="button"
         onClick={onBack}
-        style={{
-          marginBottom: 20,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-        }}
+        disabled={
+          isSaving ||
+          isDeleting ||
+          isCommentSubmitting
+        }
+        style={styles.backButton}
       >
         <ArrowLeft size={18} />
         목록으로
       </button>
 
       <article className="card">
-        <div
-          style={{
-            display: "flex",
-            justifyContent:
-              "space-between",
-            alignItems: "center",
-            gap: 12,
-            marginBottom: 16,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-            }}
+        {isEditing ? (
+          <form
+            className="form"
+            onSubmit={handleSaveEdit}
           >
-            {post.category}
-          </span>
-
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
-            {post.status || "접수"}
-          </span>
-        </div>
-
-        <h2
-          style={{
-            marginBottom: 14,
-          }}
-        >
-          {post.title}
-        </h2>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-            marginBottom: 22,
-            fontSize: 13,
-          }}
-        >
-          <span>익명</span>
-
-          <span>·</span>
-
-          {post.storePrivate ? (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-              }}
+            <label htmlFor="edit-category">
+              카테고리
+            </label>
+            <select
+              id="edit-category"
+              name="category"
+              value={editForm.category}
+              onChange={handleEditChange}
+              disabled={isSaving}
             >
-              <Lock size={14} />
-              매장 비공개
-            </span>
-          ) : (
-            <span>
-              {post.store}
-            </span>
-          )}
+              {CATEGORIES.map(category => (
+                <option
+                  key={category}
+                  value={category}
+                >
+                  {category}
+                </option>
+              ))}
+            </select>
 
-          <span>·</span>
+            <label htmlFor="edit-title">
+              제목
+            </label>
+            <input
+              id="edit-title"
+              name="title"
+              value={editForm.title}
+              onChange={handleEditChange}
+              maxLength={80}
+              disabled={isSaving}
+            />
 
-          <span>
-            {formattedPostDate}
-          </span>
-        </div>
+            <label htmlFor="edit-content">
+              내용
+            </label>
+            <textarea
+              id="edit-content"
+              name="content"
+              value={editForm.content}
+              onChange={handleEditChange}
+              rows={10}
+              maxLength={3000}
+              disabled={isSaving}
+            />
 
-        <p
-          style={{
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.8,
-            marginBottom: 28,
-          }}
-        >
-          {post.content}
-        </p>
+            <label htmlFor="edit-store">
+              소속 매장
+            </label>
+            <select
+              id="edit-store"
+              name="store"
+              value={editForm.store}
+              onChange={handleEditChange}
+              disabled={isSaving}
+            >
+              {STORES.map(store => (
+                <option
+                  key={store}
+                  value={store}
+                >
+                  {store}
+                </option>
+              ))}
+            </select>
 
-        <button
-          type="button"
-          onClick={handleLike}
-          className={
-            liked ? "active" : ""
-          }
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 7,
-          }}
-        >
-          <ThumbsUp size={17} />
-          공감 {likeCount}
-        </button>
+            <div style={styles.editActions}>
+              <button
+                type="submit"
+                disabled={
+                  isSaving ||
+                  !editForm.title.trim() ||
+                  !editForm.content.trim()
+                }
+              >
+                <Check size={17} />
+                {isSaving
+                  ? "저장 중..."
+                  : "수정 저장"}
+              </button>
+
+              <button
+                type="button"
+                className="soft"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                <X size={17} />
+                취소
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <div style={styles.postHeader}>
+              <span style={styles.category}>
+                {currentPost.category || "기타"}
+              </span>
+
+              <span style={styles.status}>
+                {currentPost.status || "접수"}
+              </span>
+            </div>
+
+            <h2 style={styles.title}>
+              {currentPost.title}
+            </h2>
+
+            <div style={styles.metadata}>
+              <span>익명</span>
+              <span aria-hidden="true">·</span>
+
+              {currentPost.store_private ||
+              currentPost.storePrivate ? (
+                <span style={styles.privateStore}>
+                  <Lock
+                    size={14}
+                    aria-hidden="true"
+                  />
+                  매장 비공개
+                </span>
+              ) : (
+                <span>
+                  {currentPost.store ||
+                    "매장 정보 없음"}
+                </span>
+              )}
+
+              {formattedPostDate && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <time
+                    dateTime={
+                      currentPost.created_at ||
+                      currentPost.createdAt
+                    }
+                  >
+                    {formattedPostDate}
+                  </time>
+                </>
+              )}
+            </div>
+
+            <p style={styles.content}>
+              {currentPost.content}
+            </p>
+
+            <div style={styles.actions}>
+              <button
+                type="button"
+                onClick={handleLike}
+                className={
+                  isLiked ? "active" : ""
+                }
+                disabled={isLikeSubmitting}
+                aria-pressed={isLiked}
+                style={styles.actionButton}
+              >
+                <ThumbsUp size={17} />
+                공감 {currentPost.likes ?? 0}
+              </button>
+
+              {isOwner && (
+                <>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() =>
+                      setIsEditing(true)
+                    }
+                    style={styles.actionButton}
+                  >
+                    <Pencil size={17} />
+                    수정
+                  </button>
+
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    style={styles.dangerButton}
+                  >
+                    <Trash2 size={17} />
+                    {isDeleting
+                      ? "삭제 중..."
+                      : "삭제"}
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
       </article>
 
-      <div
-        style={{
-          marginTop: 28,
-        }}
-      >
-        <h3
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            marginBottom: 16,
-          }}
-        >
+      <section style={styles.commentsSection}>
+        <h3 style={styles.commentsTitle}>
           <MessageCircle size={19} />
           댓글 {comments.length}
         </h3>
 
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-            marginBottom: 20,
-          }}
-        >
+        <div style={styles.commentList}>
           {isCommentLoading ? (
             <div className="card">
               댓글을 불러오는 중...
@@ -316,123 +812,75 @@ export default function BoardDetail({
               아직 등록된 댓글이 없습니다.
             </div>
           ) : (
-		comments.map(item => {
-		  const isAdmin = item.is_admin;
-
-		  const isPostWriter =
-		    item.user_id === post.user_id;
-
-		  const isMyComment =
-		    item.user_id === user?.id;
-
-		  const anonymousNumber =
-		    getAnonymousBcNumber(
-		      post.id,
-		      item.user_id
-		    );
-
-              const formattedCommentDate =
-                item.created_at
-                  ? new Date(
-                      item.created_at
-                    ).toLocaleString(
-                      "ko-KR"
-                    )
-                  : "";
+            comments.map(item => {
+              const isAdmin = Boolean(
+                item.is_admin
+              );
+              const isPostWriter =
+                item.user_id ===
+                currentPost.user_id;
+              const isMyComment =
+                item.user_id === user?.id;
+              const anonymousNumber =
+                getAnonymousBcNumber(
+                  currentPost.id,
+                  item.user_id
+                );
+              const commentDate = formatDate(
+                item.created_at,
+                true
+              );
 
               return (
-                <div
+                <article
                   key={item.id}
                   className="card"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 8,
-                      flexWrap: "wrap",
-                    }}
+                  <header
+                    style={styles.commentHeader}
                   >
-		<strong>
-		  {isAdmin
-		    ? "운영진"
-		    : `BC·${anonymousNumber}`}
-		</strong>
+                    <strong>
+                      {isAdmin
+                        ? "운영진"
+                        : anonymousNumber
+                          ? `BC·${anonymousNumber}`
+                          : "익명 BC"}
+                    </strong>
 
-                    {item.is_admin && (
-                      <span
-                        style={{
-                          padding:
-                            "4px 8px",
-                          borderRadius: 999,
-                          background:
-                            "#f1edff",
-                          color:
-                            "#6147a8",
-                          fontSize: 11,
-                          fontWeight: 800,
-                        }}
-                      >
+                    {isAdmin && (
+                      <CommentBadge type="admin">
                         운영진
-                      </span>
+                      </CommentBadge>
                     )}
 
-                    {!item.is_admin &&
+                    {!isAdmin &&
                       isPostWriter && (
-                        <span
-                          style={{
-                            padding:
-                              "4px 8px",
-                            borderRadius:
-                              999,
-                            background:
-                              "#e8eef9",
-                            color:
-                              "#0e2d69",
-                            fontSize: 11,
-                            fontWeight: 800,
-                          }}
-                        >
+                        <CommentBadge type="writer">
                           작성자
-                        </span>
+                        </CommentBadge>
                       )}
-		{!isAdmin && isMyComment && (
-		  <span
-		    style={{
-		      padding: "4px 8px",
-		      borderRadius: 999,
-		      background: "#eef7ff",
-		      color: "#2463c5",
-		      fontSize: 11,
-		      fontWeight: 800,
-		    }}
-		  >
-		    나
-		  </span>
-		)}
-                    <span
-                      style={{
-                        marginLeft: "auto",
-                        fontSize: 12,
-                        color: "#777",
-                      }}
-                    >
-                      {formattedCommentDate}
-                    </span>
-                  </div>
 
-                  <p
-                    style={{
-                      lineHeight: 1.6,
-                      whiteSpace:
-                        "pre-line",
-                      margin: 0,
-                    }}
-                  >
+                    {!isAdmin &&
+                      isMyComment && (
+                        <CommentBadge type="mine">
+                          나
+                        </CommentBadge>
+                      )}
+
+                    {commentDate && (
+                      <time
+                        dateTime={item.created_at}
+                        style={styles.commentDate}
+                      >
+                        {commentDate}
+                      </time>
+                    )}
+                  </header>
+
+                  <p style={styles.commentContent}>
                     {item.content}
                   </p>
-                </div>
+                </article>
               );
             })
           )}
@@ -440,26 +888,23 @@ export default function BoardDetail({
 
         {isLoggedIn ? (
           <form
-            onSubmit={
-              handleSubmitComment
-            }
             className="form"
+            onSubmit={handleSubmitComment}
           >
-            <label>
+            <label htmlFor="board-comment">
               댓글 작성
             </label>
 
             <textarea
+              id="board-comment"
               value={comment}
               onChange={event =>
-                setComment(
-                  event.target.value
-                )
+                setComment(event.target.value)
               }
               placeholder="서로를 존중하는 댓글을 남겨주세요."
-              disabled={
-                isCommentSubmitting
-              }
+              rows={4}
+              maxLength={1000}
+              disabled={isCommentSubmitting}
             />
 
             <button
@@ -470,7 +915,6 @@ export default function BoardDetail({
               }
             >
               <Send size={17} />
-
               {isCommentSubmitting
                 ? "등록 중..."
                 : "댓글 등록"}
@@ -478,11 +922,10 @@ export default function BoardDetail({
           </form>
         ) : (
           <div className="empty">
-            로그인 후 댓글을 작성할 수
-            있습니다.
+            로그인 후 댓글을 작성할 수 있습니다.
           </div>
         )}
-      </div>
+      </section>
     </section>
   );
 }
