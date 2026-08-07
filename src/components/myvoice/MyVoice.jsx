@@ -1,4 +1,5 @@
 import React, {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -10,11 +11,19 @@ import {
   Lock,
   MessageCircle,
   RefreshCw,
+  Settings2,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
-import { getMyPosts } from "../../services/postService";
-import { getComments } from "../../services/commentService";
+import BoardDetail from "../board/BoardDetail";
+
+import {
+  getMyPosts,
+} from "../../services/postService";
+
+import {
+  getComments,
+} from "../../services/commentService";
 
 export default function MyVoice({
   onBack,
@@ -25,94 +34,224 @@ export default function MyVoice({
     isAuthLoading,
   } = useAuth();
 
-  const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] =
-    useState(true);
+  const [posts, setPosts] =
+    useState([]);
 
-  const [openedPostId, setOpenedPostId] =
-    useState(null);
+  const [
+    isLoading,
+    setIsLoading,
+  ] = useState(true);
 
-  const [commentsByPost, setCommentsByPost] =
-    useState({});
+  const [
+    openedPostId,
+    setOpenedPostId,
+  ] = useState(null);
 
-  const [commentLoadingPostId, setCommentLoadingPostId] =
-    useState(null);
+  const [
+    selectedPost,
+    setSelectedPost,
+  ] = useState(null);
+
+  const [
+    commentsByPost,
+    setCommentsByPost,
+  ] = useState({});
+
+  const [
+    commentLoadingPostId,
+    setCommentLoadingPostId,
+  ] = useState(null);
+
+  const loadMyPosts =
+    useCallback(async () => {
+      if (!user?.id) {
+        setPosts([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+
+        const data =
+          await getMyPosts(user.id);
+
+        setPosts(
+          Array.isArray(data)
+            ? data
+            : []
+        );
+      } catch (error) {
+        console.error(
+          "My Voice 게시글 조회 오류:",
+          error
+        );
+
+        alert(
+          "내 게시글을 불러오지 못했습니다."
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }, [user?.id]);
 
   useEffect(() => {
-    if (isAuthLoading) return;
+    if (isAuthLoading) {
+      return;
+    }
 
-    if (!user) {
+    if (!user?.id) {
       setPosts([]);
       setOpenedPostId(null);
+      setSelectedPost(null);
       setCommentsByPost({});
       setIsLoading(false);
       return;
     }
 
     loadMyPosts();
-  }, [user, isAuthLoading]);
+  }, [
+    user?.id,
+    isAuthLoading,
+    loadMyPosts,
+  ]);
 
-  const loadMyPosts = async () => {
-    if (!user) return;
+  const loadComments =
+    useCallback(async postId => {
+      if (!postId) {
+        return;
+      }
 
-    try {
-      setIsLoading(true);
+      try {
+        setCommentLoadingPostId(
+          postId
+        );
 
-      const data = await getMyPosts(user.id);
+        const data =
+          await getComments(postId);
 
-      setPosts(data ?? []);
-    } catch (error) {
-      console.error(error);
+        setCommentsByPost(
+          previous => ({
+            ...previous,
+            [postId]:
+              Array.isArray(data)
+                ? data
+                : [],
+          })
+        );
+      } catch (error) {
+        console.error(
+          "My Voice 댓글 조회 오류:",
+          error
+        );
 
-      alert(
-        "내 게시글을 불러오지 못했습니다."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        alert(
+          "답변을 불러오지 못했습니다."
+        );
+      } finally {
+        setCommentLoadingPostId(
+          null
+        );
+      }
+    }, []);
 
-  const loadComments = async postId => {
-    try {
-      setCommentLoadingPostId(postId);
+  const handleTogglePost =
+    async postId => {
+      if (
+        openedPostId === postId
+      ) {
+        setOpenedPostId(null);
+        return;
+      }
 
-      const data = await getComments(postId);
+      setOpenedPostId(postId);
 
-      setCommentsByPost(previous => ({
-        ...previous,
-        [postId]: data ?? [],
-      }));
-    } catch (error) {
-      console.error(
-        "운영진 답변 조회 오류",
-        error
-      );
-
-      alert(
-        "운영진 답변을 불러오지 못했습니다."
-      );
-    } finally {
-      setCommentLoadingPostId(null);
-    }
-  };
-
-  const handleTogglePost = async postId => {
-    if (openedPostId === postId) {
-      setOpenedPostId(null);
-      return;
-    }
-
-    setOpenedPostId(postId);
-
-    if (
-      !Object.prototype.hasOwnProperty.call(
-        commentsByPost,
-        postId
-      )
-    ) {
+      // 항상 최신 댓글/운영진 답변을 다시 가져옵니다.
       await loadComments(postId);
-    }
-  };
+    };
+
+  const handleOpenDetail =
+    post => {
+      setSelectedPost(post);
+    };
+
+  const handleCloseDetail =
+    async () => {
+      setSelectedPost(null);
+
+      // Beauty Voice 또는 My Voice에서
+      // 수정/삭제된 최신 DB 상태로 다시 동기화합니다.
+      await loadMyPosts();
+    };
+
+  const handlePostUpdated =
+    updatedPost => {
+      if (!updatedPost?.id) {
+        return;
+      }
+
+      setPosts(previous =>
+        previous.map(post =>
+          post.id ===
+          updatedPost.id
+            ? {
+                ...post,
+                ...updatedPost,
+              }
+            : post
+        )
+      );
+
+      setSelectedPost(
+        previous =>
+          previous?.id ===
+          updatedPost.id
+            ? {
+                ...previous,
+                ...updatedPost,
+              }
+            : previous
+      );
+    };
+
+  const handlePostDeleted =
+    deletedPostId => {
+      const postId =
+        deletedPostId ??
+        selectedPost?.id;
+
+      if (!postId) {
+        return;
+      }
+
+      setPosts(previous =>
+        previous.filter(
+          post =>
+            post.id !== postId
+        )
+      );
+
+      setCommentsByPost(
+        previous => {
+          const next = {
+            ...previous,
+          };
+
+          delete next[postId];
+
+          return next;
+        }
+      );
+
+      setOpenedPostId(
+        previous =>
+          previous === postId
+            ? null
+            : previous
+      );
+
+      setSelectedPost(null);
+    };
 
   if (isAuthLoading) {
     return (
@@ -127,7 +266,9 @@ export default function MyVoice({
   if (!isLoggedIn) {
     return (
       <section className="panel center">
-        <MessageCircle size={48} />
+        <MessageCircle
+          size={48}
+        />
 
         <h2>My Voice</h2>
 
@@ -141,11 +282,31 @@ export default function MyVoice({
             type="button"
             onClick={onBack}
           >
-            <ArrowLeft size={17} />
+            <ArrowLeft
+              size={17}
+            />
             돌아가기
           </button>
         )}
       </section>
+    );
+  }
+
+  if (selectedPost) {
+    return (
+      <BoardDetail
+        post={selectedPost}
+        currentUser={user}
+        onBack={
+          handleCloseDetail
+        }
+        onPostUpdated={
+          handlePostUpdated
+        }
+        onPostDeleted={
+          handlePostDeleted
+        }
+      />
     );
   }
 
@@ -154,30 +315,47 @@ export default function MyVoice({
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
+          justifyContent:
+            "space-between",
+          alignItems:
+            "flex-start",
           gap: 16,
           marginBottom: 24,
         }}
       >
         <div>
-          <h2 style={{ marginBottom: 8 }}>
+          <h2
+            style={{
+              marginBottom: 8,
+            }}
+          >
             My Voice
           </h2>
 
           <p className="sub">
             내가 작성한 공개 게시글과
-            운영자에게 전달한 내용을 확인할
-            수 있습니다.
+            운영자에게 전달한 내용을
+            확인하고 관리할 수 있습니다.
           </p>
         </div>
 
         <button
           type="button"
           className="myVoiceRefreshButton"
-          onClick={loadMyPosts}
+          onClick={async () => {
+            setCommentsByPost(
+              {}
+            );
+            setOpenedPostId(
+              null
+            );
+            await loadMyPosts();
+          }}
+          disabled={isLoading}
         >
-          <RefreshCw size={16} />
+          <RefreshCw
+            size={16}
+          />
           새로고침
         </button>
       </div>
@@ -200,7 +378,8 @@ export default function MyVoice({
           <b>
             {
               posts.filter(
-                post => !post.admin_only
+                post =>
+                  !post.admin_only
               ).length
             }
           </b>
@@ -211,7 +390,8 @@ export default function MyVoice({
           <b>
             {
               posts.filter(
-                post => post.admin_only
+                post =>
+                  post.admin_only
               ).length
             }
           </b>
@@ -229,9 +409,11 @@ export default function MyVoice({
           <div className="card">
             내 게시글을 불러오는 중...
           </div>
-        ) : posts.length === 0 ? (
+        ) : posts.length ===
+          0 ? (
           <div className="empty">
-            아직 작성한 게시글이 없습니다.
+            아직 작성한 게시글이
+            없습니다.
           </div>
         ) : (
           posts.map(post => {
@@ -245,18 +427,29 @@ export default function MyVoice({
                 : "";
 
             const isOpened =
-              openedPostId === post.id;
+              openedPostId ===
+              post.id;
 
             const comments =
-              commentsByPost[post.id] ?? [];
+              commentsByPost[
+                post.id
+              ] ?? [];
+
+            const adminComments =
+              comments.filter(
+                comment =>
+                  comment.is_admin
+              );
 
             const isCommentLoading =
-              commentLoadingPostId === post.id;
+              commentLoadingPostId ===
+              post.id;
 
             const displayStatus =
-              comments.length > 0
+              adminComments.length > 0
                 ? "답변완료"
-                : post.status || "접수";
+                : post.status ||
+                  "접수";
 
             return (
               <article
@@ -264,98 +457,141 @@ export default function MyVoice({
                 className="card"
                 style={{
                   padding: 0,
-                  overflow: "hidden",
+                  overflow:
+                    "hidden",
                 }}
               >
                 <button
                   type="button"
                   onClick={() =>
-                    handleTogglePost(post.id)
+                    handleTogglePost(
+                      post.id
+                    )
                   }
                   style={{
                     width: "100%",
                     padding: 22,
                     border: 0,
-                    background: "transparent",
+                    background:
+                      "transparent",
                     color: "inherit",
                     font: "inherit",
-                    textAlign: "left",
-                    cursor: "pointer",
+                    textAlign:
+                      "left",
+                    cursor:
+                      "pointer",
                   }}
                 >
                   <div
                     style={{
-                      display: "flex",
+                      display:
+                        "flex",
                       justifyContent:
                         "space-between",
-                      alignItems: "center",
+                      alignItems:
+                        "center",
                       gap: 12,
-                      marginBottom: 12,
+                      marginBottom:
+                        12,
                     }}
                   >
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
+                        display:
+                          "flex",
+                        alignItems:
+                          "center",
                         gap: 8,
-                        flexWrap: "wrap",
+                        flexWrap:
+                          "wrap",
                       }}
                     >
                       <span
                         style={{
-                          fontSize: 13,
-                          fontWeight: 800,
+                          fontSize:
+                            13,
+                          fontWeight:
+                            800,
                         }}
                       >
-                        {post.category}
+                        {post.category ||
+                          "기타"}
                       </span>
 
                       {post.admin_only && (
                         <span
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
+                            display:
+                              "inline-flex",
+                            alignItems:
+                              "center",
                             gap: 5,
-                            padding: "5px 9px",
-                            borderRadius: 999,
-                            background: "#f1edff",
-                            color: "#6147a8",
-                            fontSize: 12,
-                            fontWeight: 800,
+                            padding:
+                              "5px 9px",
+                            borderRadius:
+                              999,
+                            background:
+                              "#f1edff",
+                            color:
+                              "#6147a8",
+                            fontSize:
+                              12,
+                            fontWeight:
+                              800,
                           }}
                         >
-                          <Lock size={13} />
-                          운영자에게 전달
+                          <Lock
+                            size={
+                              13
+                            }
+                          />
+                          운영자에게
+                          전달
                         </span>
                       )}
                     </div>
 
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
+                        display:
+                          "flex",
+                        alignItems:
+                          "center",
                         gap: 8,
                       }}
                     >
-                      {comments.length > 0 && (
+                      {adminComments.length >
+                        0 && (
                         <span
                           style={{
-                            padding: "5px 9px",
-                            borderRadius: 999,
-                            background: "#f1edff",
-                            color: "#6147a8",
-                            fontSize: 12,
-                            fontWeight: 800,
+                            padding:
+                              "5px 9px",
+                            borderRadius:
+                              999,
+                            background:
+                              "#f1edff",
+                            color:
+                              "#6147a8",
+                            fontSize:
+                              12,
+                            fontWeight:
+                              800,
                           }}
                         >
-                          답변 {comments.length}개
+                          답변{" "}
+                          {
+                            adminComments.length
+                          }
+                          개
                         </span>
                       )}
 
                       <span
                         style={{
-                          padding: "5px 9px",
-                          borderRadius: 999,
+                          padding:
+                            "5px 9px",
+                          borderRadius:
+                            999,
                           background:
                             displayStatus ===
                             "답변완료"
@@ -366,24 +602,33 @@ export default function MyVoice({
                             "답변완료"
                               ? "#247044"
                               : "#0e2d69",
-                          fontSize: 12,
-                          fontWeight: 800,
+                          fontSize:
+                            12,
+                          fontWeight:
+                            800,
                         }}
                       >
-                        {displayStatus}
+                        {
+                          displayStatus
+                        }
                       </span>
 
                       {isOpened ? (
-                        <ChevronUp size={18} />
+                        <ChevronUp
+                          size={18}
+                        />
                       ) : (
-                        <ChevronDown size={18} />
+                        <ChevronDown
+                          size={18}
+                        />
                       )}
                     </div>
                   </div>
 
                   <h3
                     style={{
-                      marginBottom: 8,
+                      marginBottom:
+                        8,
                     }}
                   >
                     {post.title}
@@ -392,8 +637,10 @@ export default function MyVoice({
                   <p
                     className="sub"
                     style={{
-                      marginBottom: 16,
-                      whiteSpace: "pre-line",
+                      marginBottom:
+                        16,
+                      whiteSpace:
+                        "pre-line",
                     }}
                   >
                     {post.content}
@@ -401,43 +648,83 @@ export default function MyVoice({
 
                   <div
                     style={{
-                      display: "flex",
+                      display:
+                        "flex",
                       justifyContent:
                         "space-between",
-                      alignItems: "center",
+                      alignItems:
+                        "center",
                       gap: 12,
                       fontSize: 13,
                     }}
                   >
                     <span>
-                      {post.store} ·{" "}
-                      {formattedDate}
+                      {post.store ||
+                        "매장 정보 없음"}{" "}
+                      ·{" "}
+                      {
+                        formattedDate
+                      }
                     </span>
 
                     <span>
-                      공감 {post.likes ?? 0}
+                      공감{" "}
+                      {post.likes ??
+                        0}
                     </span>
                   </div>
                 </button>
 
+                <div
+                  style={{
+                    padding:
+                      "0 22px 18px",
+                    display: "flex",
+                    justifyContent:
+                      "flex-end",
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() =>
+                      handleOpenDetail(
+                        post
+                      )
+                    }
+                  >
+                    <Settings2
+                      size={16}
+                    />
+                    상세 / 수정·삭제
+                  </button>
+                </div>
+
                 {isOpened && (
                   <div
                     style={{
-                      padding: "20px 22px 22px",
+                      padding:
+                        "20px 22px 22px",
                       borderTop:
                         "1px solid #ececec",
-                      background: "#fafafa",
+                      background:
+                        "#fafafa",
                     }}
                   >
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
+                        display:
+                          "flex",
+                        alignItems:
+                          "center",
                         gap: 8,
-                        marginBottom: 14,
+                        marginBottom:
+                          14,
                       }}
                     >
-                      <MessageCircle size={18} />
+                      <MessageCircle
+                        size={18}
+                      />
 
                       <strong>
                         운영진 답변
@@ -445,94 +732,120 @@ export default function MyVoice({
 
                       <span
                         style={{
-                          color: "#777",
-                          fontSize: 13,
+                          color:
+                            "#777",
+                          fontSize:
+                            13,
                         }}
                       >
-                        {comments.length}개
+                        {
+                          adminComments.length
+                        }
+                        개
                       </span>
                     </div>
 
                     {isCommentLoading ? (
                       <div className="empty">
-                        답변을 불러오는 중...
+                        답변을 불러오는
+                        중...
                       </div>
-                    ) : comments.length === 0 ? (
+                    ) : adminComments.length ===
+                      0 ? (
                       <div className="empty">
-                        아직 등록된 답변이
+                        아직 등록된
+                        운영진 답변이
                         없습니다.
                       </div>
                     ) : (
                       <div
                         style={{
-                          display: "grid",
+                          display:
+                            "grid",
                           gap: 10,
                         }}
                       >
-                        {comments.map(comment => {
-                          const commentDate =
-                            comment.created_at
-                              ? new Date(
-                                  comment.created_at
-                                ).toLocaleString(
-                                  "ko-KR"
-                                )
-                              : "";
+                        {adminComments.map(
+                          comment => {
+                            const commentDate =
+                              comment.created_at
+                                ? new Date(
+                                    comment.created_at
+                                  ).toLocaleString(
+                                    "ko-KR"
+                                  )
+                                : "";
 
-                          return (
-                            <div
-                              key={comment.id}
-                              style={{
-                                padding: 16,
-                                border:
-                                  "1px solid #e8e8e8",
-                                borderRadius: 14,
-                                background: "#fff",
-                              }}
-                            >
+                            return (
                               <div
+                                key={
+                                  comment.id
+                                }
                                 style={{
-                                  display: "flex",
-                                  justifyContent:
-                                    "space-between",
-                                  alignItems:
-                                    "center",
-                                  gap: 12,
-                                  marginBottom: 8,
+                                  padding:
+                                    16,
+                                  border:
+                                    "1px solid #e8e8e8",
+                                  borderRadius:
+                                    14,
+                                  background:
+                                    "#fff",
                                 }}
                               >
-                                <strong
+                                <div
                                   style={{
-                                    fontSize: 14,
+                                    display:
+                                      "flex",
+                                    justifyContent:
+                                      "space-between",
+                                    alignItems:
+                                      "center",
+                                    gap: 12,
+                                    marginBottom:
+                                      8,
                                   }}
                                 >
-                                  {comment.writer ||
-                                    "운영진"}
-                                </strong>
+                                  <strong
+                                    style={{
+                                      fontSize:
+                                        14,
+                                    }}
+                                  >
+                                    운영진
+                                  </strong>
 
-                                <span
+                                  <span
+                                    style={{
+                                      color:
+                                        "#999",
+                                      fontSize:
+                                        12,
+                                    }}
+                                  >
+                                    {
+                                      commentDate
+                                    }
+                                  </span>
+                                </div>
+
+                                <p
                                   style={{
-                                    color: "#999",
-                                    fontSize: 12,
+                                    margin:
+                                      0,
+                                    lineHeight:
+                                      1.65,
+                                    whiteSpace:
+                                      "pre-line",
                                   }}
                                 >
-                                  {commentDate}
-                                </span>
+                                  {
+                                    comment.content
+                                  }
+                                </p>
                               </div>
-
-                              <p
-                                style={{
-                                  margin: 0,
-                                  lineHeight: 1.65,
-                                  whiteSpace:
-                                    "pre-line",
-                                }}
-                              >
-                                {comment.content}
-                              </p>
-                            </div>
-                          );
-                        })}
+                            );
+                          }
+                        )}
                       </div>
                     )}
                   </div>
