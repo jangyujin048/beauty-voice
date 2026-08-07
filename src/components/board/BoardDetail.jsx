@@ -10,6 +10,7 @@ import {
   Check,
   Lock,
   MessageCircle,
+  MoreHorizontal,
   Pencil,
   Send,
   ThumbsUp,
@@ -20,7 +21,9 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 import {
   createComment,
+  deleteComment,
   getComments,
+  updateComment,
 } from "../../services/commentService";
 import {
   deletePost,
@@ -155,6 +158,53 @@ const styles = {
     background: "#eef7ff",
     color: "#2463c5",
   },
+  commentMenuWrap: {
+    position: "relative",
+    marginLeft: 4,
+  },
+  commentMenuButton: {
+    width: 32,
+    height: 32,
+    minWidth: 32,
+    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+  },
+  commentMenu: {
+    position: "absolute",
+    top: 36,
+    right: 0,
+    zIndex: 20,
+    minWidth: 112,
+    padding: 6,
+    background: "#fff",
+    border: "1px solid rgba(15, 23, 42, 0.1)",
+    borderRadius: 12,
+    boxShadow: "0 12px 30px rgba(15, 23, 42, 0.12)",
+  },
+  commentMenuItem: {
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-start",
+    gap: 8,
+    padding: "9px 10px",
+    border: 0,
+    background: "transparent",
+  },
+  commentEditActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
+    flexWrap: "wrap",
+  },
+  editedText: {
+    fontSize: 11,
+    color: "#8a8a8a",
+  },
   editActions: {
     display: "flex",
     gap: 10,
@@ -248,6 +298,7 @@ export default function BoardDetail({
   post,
   currentUser,
   onBack,
+  onEdit,
   onPostUpdated,
   onPostDeleted,
 }) {
@@ -278,6 +329,27 @@ export default function BoardDetail({
     setIsCommentSubmitting,
   ] = useState(false);
 
+  const [
+    openCommentMenuId,
+    setOpenCommentMenuId,
+  ] = useState(null);
+  const [
+    editingCommentId,
+    setEditingCommentId,
+  ] = useState(null);
+  const [
+    editingCommentText,
+    setEditingCommentText,
+  ] = useState("");
+  const [
+    isCommentSaving,
+    setIsCommentSaving,
+  ] = useState(false);
+  const [
+    deletingCommentId,
+    setDeletingCommentId,
+  ] = useState(null);
+
   const [isEditing, setIsEditing] =
     useState(false);
   const [isSaving, setIsSaving] =
@@ -301,6 +373,9 @@ export default function BoardDetail({
       store: post?.store || STORES[0],
     });
     setIsEditing(false);
+    setOpenCommentMenuId(null);
+    setEditingCommentId(null);
+    setEditingCommentText("");
   }, [post]);
 
   useEffect(() => {
@@ -475,6 +550,130 @@ export default function BoardDetail({
     } finally {
       setIsCommentSubmitting(false);
     }
+  };
+
+  const handleStartCommentEdit = item => {
+    setOpenCommentMenuId(null);
+    setEditingCommentId(item.id);
+    setEditingCommentText(item.content || "");
+  };
+
+  const handleCancelCommentEdit = () => {
+    setEditingCommentId(null);
+    setEditingCommentText("");
+  };
+
+  const handleSaveComment = async commentId => {
+    const trimmedContent =
+      editingCommentText.trim();
+
+    if (!trimmedContent) {
+      alert("댓글 내용을 입력해주세요.");
+      return;
+    }
+
+    if (isCommentSaving) {
+      return;
+    }
+
+    try {
+      setIsCommentSaving(true);
+
+      const updatedComment =
+        await updateComment(
+          commentId,
+          trimmedContent
+        );
+
+      setComments(previous =>
+        previous.map(item =>
+          item.id === commentId
+            ? {
+                ...item,
+                ...updatedComment,
+                __edited: true,
+              }
+            : item
+        )
+      );
+
+      handleCancelCommentEdit();
+    } catch (error) {
+      console.error(
+        "Beauty Voice 댓글 수정 오류:",
+        error
+      );
+      alert(
+        error?.message ||
+          "댓글을 수정하지 못했습니다."
+      );
+    } finally {
+      setIsCommentSaving(false);
+    }
+  };
+
+  const handleDeleteComment =
+    async commentId => {
+      if (
+        !commentId ||
+        deletingCommentId
+      ) {
+        return;
+      }
+
+      const shouldDelete = window.confirm(
+        "이 댓글을 삭제할까요?\n삭제한 댓글은 복구할 수 없습니다."
+      );
+
+      if (!shouldDelete) {
+        return;
+      }
+
+      try {
+        setDeletingCommentId(commentId);
+
+        await deleteComment(commentId);
+
+        setComments(previous =>
+          previous.filter(
+            item => item.id !== commentId
+          )
+        );
+
+        setOpenCommentMenuId(null);
+
+        onPostUpdated?.({
+          ...currentPost,
+          comment_count: Math.max(
+            comments.length - 1,
+            0
+          ),
+        });
+      } catch (error) {
+        console.error(
+          "Beauty Voice 댓글 삭제 오류:",
+          error
+        );
+        alert(
+          error?.message ||
+            "댓글을 삭제하지 못했습니다."
+        );
+      } finally {
+        setDeletingCommentId(null);
+      }
+    };
+
+  const handleOpenPostEdit = () => {
+    if (!isOwner) {
+      return;
+    }
+
+    if (onEdit) {
+      onEdit(currentPost);
+      return;
+    }
+
+    setIsEditing(true);
   };
 
   const handleEditChange = event => {
@@ -768,9 +967,7 @@ export default function BoardDetail({
                   <button
                     type="button"
                     className="soft"
-                    onClick={() =>
-                      setIsEditing(true)
-                    }
+                    onClick={handleOpenPostEdit}
                     style={styles.actionButton}
                   >
                     <Pencil size={17} />
@@ -867,6 +1064,15 @@ export default function BoardDetail({
                         </CommentBadge>
                       )}
 
+                    {(item.__edited ||
+                      (item.updated_at &&
+                        item.updated_at !==
+                          item.created_at)) && (
+                      <span style={styles.editedText}>
+                        수정됨
+                      </span>
+                    )}
+
                     {commentDate && (
                       <time
                         dateTime={item.created_at}
@@ -875,11 +1081,126 @@ export default function BoardDetail({
                         {commentDate}
                       </time>
                     )}
+
+                    {isMyComment && (
+                      <div
+                        style={styles.commentMenuWrap}
+                      >
+                        <button
+                          type="button"
+                          className="soft"
+                          aria-label="댓글 메뉴"
+                          style={styles.commentMenuButton}
+                          onClick={() =>
+                            setOpenCommentMenuId(
+                              previous =>
+                                previous === item.id
+                                  ? null
+                                  : item.id
+                            )
+                          }
+                        >
+                          <MoreHorizontal size={18} />
+                        </button>
+
+                        {openCommentMenuId ===
+                          item.id && (
+                          <div
+                            style={styles.commentMenu}
+                          >
+                            <button
+                              type="button"
+                              style={styles.commentMenuItem}
+                              onClick={() =>
+                                handleStartCommentEdit(
+                                  item
+                                )
+                              }
+                            >
+                              <Pencil size={15} />
+                              수정
+                            </button>
+
+                            <button
+                              type="button"
+                              style={styles.commentMenuItem}
+                              disabled={
+                                deletingCommentId ===
+                                item.id
+                              }
+                              onClick={() =>
+                                handleDeleteComment(
+                                  item.id
+                                )
+                              }
+                            >
+                              <Trash2 size={15} />
+                              {deletingCommentId ===
+                              item.id
+                                ? "삭제 중..."
+                                : "삭제"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </header>
 
-                  <p style={styles.commentContent}>
-                    {item.content}
-                  </p>
+                  {editingCommentId === item.id ? (
+                    <>
+                      <textarea
+                        value={editingCommentText}
+                        onChange={event =>
+                          setEditingCommentText(
+                            event.target.value
+                          )
+                        }
+                        rows={4}
+                        maxLength={1000}
+                        disabled={isCommentSaving}
+                      />
+
+                      <div
+                        style={
+                          styles.commentEditActions
+                        }
+                      >
+                        <button
+                          type="button"
+                          disabled={
+                            isCommentSaving ||
+                            !editingCommentText.trim()
+                          }
+                          onClick={() =>
+                            handleSaveComment(
+                              item.id
+                            )
+                          }
+                        >
+                          <Check size={16} />
+                          {isCommentSaving
+                            ? "저장 중..."
+                            : "저장"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="soft"
+                          disabled={isCommentSaving}
+                          onClick={
+                            handleCancelCommentEdit
+                          }
+                        >
+                          <X size={16} />
+                          취소
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p style={styles.commentContent}>
+                      {item.content}
+                    </p>
+                  )}
                 </article>
               );
             })
