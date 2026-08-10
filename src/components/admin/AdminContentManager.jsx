@@ -50,7 +50,7 @@ function emptyForm(type) {
     };
   }
   if (type === "faq") {
-    return { category: "교육", question: "", answer: "" };
+    return { category: "정보", question: "", answer: "" };
   }
   return { month: "", title: "", content: "", imageFile: null, imageUrl: "" };
 }
@@ -181,7 +181,7 @@ export default function AdminContentManager({
   type,
   items,
   onReload,
-  faqCategories = ["전체", "시스템", "서비스", "교육", "기타"],
+  faqCategories = ["전체", "시스템", "서비스", "정보", "기타"],
 }) {
   const config = CONFIG[type];
   const [form, setForm] = useState(() => emptyForm(type));
@@ -645,7 +645,7 @@ if (type === "notice") {
               id="admin-title"
               value={type === "faq" ? form.question : form.title}
               onChange={(event) => setForm((prev) => ({ ...prev, [type === "faq" ? "question" : "title"]: event.target.value }))}
-              placeholder={type === "faq" ? "예: 교육 신청은 어떻게 하나요?" : "제목을 입력하세요."}
+              placeholder={type === "faq" ? "예: 면담 신청은 어떻게 하나요?" : "제목을 입력하세요."}
               autoFocus={type !== "insight"}
             />
           </div>

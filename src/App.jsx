@@ -56,7 +56,7 @@ export default function App() {
 const [openFaqCategories, setOpenFaqCategories] = useState([
   "시스템",
   "서비스",
-  "교육",
+  "정보",
   "기타",
 ]);
   const [insights, setInsights] = useState([]);
@@ -147,7 +147,7 @@ const [adminSubTab, setAdminSubTab] = useState("board");
   const categoryOrder = {
     시스템: 1,
     서비스: 2,
-    교육: 3,
+    정보: 3,
     기타: 4,
   };
 
@@ -293,7 +293,7 @@ function toggleFaqCategory(category) {
   }, [faqs, faqKeyword, faqCategoryFilter]);
 
 const groupedFaqs = useMemo(() => {
-  const categoryOrder = ["시스템", "서비스", "교육", "기타"];
+  const categoryOrder = ["시스템", "서비스", "정보", "기타"];
 
   const groups = {};
 
