@@ -6,94 +6,141 @@ import React, {
 
 import {
   ArrowLeft,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
   Lock,
   MessageCircle,
+  Pencil,
   RefreshCw,
-  Settings2,
+  UserRound,
 } from "lucide-react";
 
 import { useAuth } from "../../contexts/AuthContext";
 import BoardDetail from "../board/BoardDetail";
 
-import {
-  getMyPosts,
-} from "../../services/postService";
+import { getMyPosts } from "../../services/postService";
+import { getComments } from "../../services/commentService";
 
 import {
-  getComments,
-} from "../../services/commentService";
+  getMyProfile,
+  saveMyNickname,
+} from "../../services/profileService";
 
-export default function MyVoice({
-  onBack,
-}) {
+export default function MyVoice({ onBack }) {
   const {
     user,
     isLoggedIn,
     isAuthLoading,
   } = useAuth();
 
-  const [posts, setPosts] =
-    useState([]);
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedPost, setSelectedPost] = useState(null);
 
   const [
-    isLoading,
-    setIsLoading,
-  ] = useState(true);
-
-  const [
-    openedPostId,
-    setOpenedPostId,
-  ] = useState(null);
-
-  const [
-    selectedPost,
-    setSelectedPost,
-  ] = useState(null);
-
-  const [
-    commentsByPost,
-    setCommentsByPost,
+    replyInfoByPost,
+    setReplyInfoByPost,
   ] = useState({});
 
-  const [
-    commentLoadingPostId,
-    setCommentLoadingPostId,
-  ] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [nickname, setNickname] = useState("");
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isSavingNickname, setIsSavingNickname] = useState(false);
 
-  const loadMyPosts =
-    useCallback(async () => {
-      if (!user?.id) {
-        setPosts([]);
-        setIsLoading(false);
-        return;
-      }
+  const loadMyProfile = useCallback(async () => {
+    if (!user?.id) {
+      setProfile(null);
+      setNickname("");
+      setIsProfileLoading(false);
+      return;
+    }
 
-      try {
-        setIsLoading(true);
+    try {
+      setIsProfileLoading(true);
 
-        const data =
-          await getMyPosts(user.id);
+      const data = await getMyProfile();
 
-        setPosts(
-          Array.isArray(data)
-            ? data
-            : []
-        );
-      } catch (error) {
-        console.error(
-          "My Voice 게시글 조회 오류:",
-          error
-        );
+      setProfile(data);
+      setNickname(data?.nickname || "");
+    } catch (error) {
+      console.error(
+        "My Voice 프로필 조회 오류:",
+        error
+      );
+    } finally {
+      setIsProfileLoading(false);
+    }
+  }, [user?.id]);
 
-        alert(
-          "내 게시글을 불러오지 못했습니다."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }, [user?.id]);
+  const loadMyPosts = useCallback(async () => {
+    if (!user?.id) {
+      setPosts([]);
+      setReplyInfoByPost({});
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const data = await getMyPosts(user.id);
+      const postList = Array.isArray(data) ? data : [];
+
+      setPosts(postList);
+
+      const replyEntries = await Promise.all(
+        postList.map(async post => {
+          try {
+            const comments = await getComments(post.id);
+
+            const commentList =
+              Array.isArray(comments)
+                ? comments
+                : [];
+
+            return [
+              post.id,
+              {
+                totalCount:
+                  commentList.length,
+                hasAdminReply:
+                  commentList.some(
+                    comment =>
+                      comment.is_admin
+                  ),
+              },
+            ];
+          } catch (error) {
+            console.error(
+              `답글 정보 조회 오류 (${post.id}):`,
+              error
+            );
+
+            return [
+              post.id,
+              {
+                totalCount: 0,
+                hasAdminReply: false,
+              },
+            ];
+          }
+        })
+      );
+
+      setReplyInfoByPost(
+        Object.fromEntries(replyEntries)
+      );
+    } catch (error) {
+      console.error(
+        "My Voice 게시글 조회 오류:",
+        error
+      );
+
+      alert("내 게시글을 불러오지 못했습니다.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     if (isAuthLoading) {
@@ -102,156 +149,129 @@ export default function MyVoice({
 
     if (!user?.id) {
       setPosts([]);
-      setOpenedPostId(null);
       setSelectedPost(null);
-      setCommentsByPost({});
+      setReplyInfoByPost({});
+      setProfile(null);
+      setNickname("");
       setIsLoading(false);
+      setIsProfileLoading(false);
       return;
     }
 
     loadMyPosts();
+    loadMyProfile();
   }, [
     user?.id,
     isAuthLoading,
     loadMyPosts,
+    loadMyProfile,
   ]);
 
-  const loadComments =
-    useCallback(async postId => {
-      if (!postId) {
-        return;
-      }
+  const handleSaveNickname = async () => {
+    const trimmed = nickname.trim();
 
-      try {
-        setCommentLoadingPostId(
-          postId
-        );
+    if (trimmed.length < 2) {
+      alert("닉네임은 2자 이상 입력해주세요.");
+      return;
+    }
 
-        const data =
-          await getComments(postId);
+    if (trimmed.length > 12) {
+      alert("닉네임은 12자 이하로 입력해주세요.");
+      return;
+    }
 
-        setCommentsByPost(
-          previous => ({
+    try {
+      setIsSavingNickname(true);
+
+      const savedProfile =
+        await saveMyNickname(trimmed);
+
+      setProfile(savedProfile);
+      setNickname(savedProfile.nickname);
+      setIsEditingNickname(false);
+
+      alert(
+        profile
+          ? "닉네임이 변경되었습니다."
+          : "닉네임이 설정되었습니다."
+      );
+    } catch (error) {
+      console.error(
+        "닉네임 저장 오류:",
+        error
+      );
+
+      alert(
+        error?.message ||
+          "닉네임 저장에 실패했습니다."
+      );
+    } finally {
+      setIsSavingNickname(false);
+    }
+  };
+
+  const handleOpenDetail = post => {
+    setSelectedPost(post);
+  };
+
+  const handleCloseDetail = async () => {
+    setSelectedPost(null);
+    await loadMyPosts();
+  };
+
+  const handlePostUpdated = updatedPost => {
+    if (!updatedPost?.id) {
+      return;
+    }
+
+    setPosts(previous =>
+      previous.map(post =>
+        post.id === updatedPost.id
+          ? {
+              ...post,
+              ...updatedPost,
+            }
+          : post
+      )
+    );
+
+    setSelectedPost(previous =>
+      previous?.id === updatedPost.id
+        ? {
             ...previous,
-            [postId]:
-              Array.isArray(data)
-                ? data
-                : [],
-          })
-        );
-      } catch (error) {
-        console.error(
-          "My Voice 댓글 조회 오류:",
-          error
-        );
+            ...updatedPost,
+          }
+        : previous
+    );
+  };
 
-        alert(
-          "답변을 불러오지 못했습니다."
-        );
-      } finally {
-        setCommentLoadingPostId(
-          null
-        );
-      }
-    }, []);
+  const handlePostDeleted = deletedPostId => {
+    const postId =
+      deletedPostId ??
+      selectedPost?.id;
 
-  const handleTogglePost =
-    async postId => {
-      if (
-        openedPostId === postId
-      ) {
-        setOpenedPostId(null);
-        return;
-      }
+    if (!postId) {
+      return;
+    }
 
-      setOpenedPostId(postId);
+    setPosts(previous =>
+      previous.filter(
+        post => post.id !== postId
+      )
+    );
 
-      // 항상 최신 댓글/운영진 답변을 다시 가져옵니다.
-      await loadComments(postId);
-    };
+    setReplyInfoByPost(previous => {
+      const next = {
+        ...previous,
+      };
 
-  const handleOpenDetail =
-    post => {
-      setSelectedPost(post);
-    };
+      delete next[postId];
 
-  const handleCloseDetail =
-    async () => {
-      setSelectedPost(null);
+      return next;
+    });
 
-      // Beauty Voice 또는 My Voice에서
-      // 수정/삭제된 최신 DB 상태로 다시 동기화합니다.
-      await loadMyPosts();
-    };
-
-  const handlePostUpdated =
-    updatedPost => {
-      if (!updatedPost?.id) {
-        return;
-      }
-
-      setPosts(previous =>
-        previous.map(post =>
-          post.id ===
-          updatedPost.id
-            ? {
-                ...post,
-                ...updatedPost,
-              }
-            : post
-        )
-      );
-
-      setSelectedPost(
-        previous =>
-          previous?.id ===
-          updatedPost.id
-            ? {
-                ...previous,
-                ...updatedPost,
-              }
-            : previous
-      );
-    };
-
-  const handlePostDeleted =
-    deletedPostId => {
-      const postId =
-        deletedPostId ??
-        selectedPost?.id;
-
-      if (!postId) {
-        return;
-      }
-
-      setPosts(previous =>
-        previous.filter(
-          post =>
-            post.id !== postId
-        )
-      );
-
-      setCommentsByPost(
-        previous => {
-          const next = {
-            ...previous,
-          };
-
-          delete next[postId];
-
-          return next;
-        }
-      );
-
-      setOpenedPostId(
-        previous =>
-          previous === postId
-            ? null
-            : previous
-      );
-
-      setSelectedPost(null);
-    };
+    setSelectedPost(null);
+  };
 
   if (isAuthLoading) {
     return (
@@ -266,9 +286,7 @@ export default function MyVoice({
   if (!isLoggedIn) {
     return (
       <section className="panel center">
-        <MessageCircle
-          size={48}
-        />
+        <MessageCircle size={48} />
 
         <h2>My Voice</h2>
 
@@ -280,11 +298,10 @@ export default function MyVoice({
         {onBack && (
           <button
             type="button"
+            className="soft"
             onClick={onBack}
           >
-            <ArrowLeft
-              size={17}
-            />
+            <ArrowLeft size={17} />
             돌아가기
           </button>
         )}
@@ -297,15 +314,9 @@ export default function MyVoice({
       <BoardDetail
         post={selectedPost}
         currentUser={user}
-        onBack={
-          handleCloseDetail
-        }
-        onPostUpdated={
-          handlePostUpdated
-        }
-        onPostDeleted={
-          handlePostDeleted
-        }
+        onBack={handleCloseDetail}
+        onPostUpdated={handlePostUpdated}
+        onPostDeleted={handlePostDeleted}
       />
     );
   }
@@ -315,10 +326,8 @@ export default function MyVoice({
       <div
         style={{
           display: "flex",
-          justifyContent:
-            "space-between",
-          alignItems:
-            "flex-start",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
           gap: 16,
           marginBottom: 24,
         }}
@@ -342,22 +351,187 @@ export default function MyVoice({
         <button
           type="button"
           className="myVoiceRefreshButton"
-          onClick={async () => {
-            setCommentsByPost(
-              {}
-            );
-            setOpenedPostId(
-              null
-            );
-            await loadMyPosts();
-          }}
+          onClick={loadMyPosts}
           disabled={isLoading}
         >
-          <RefreshCw
-            size={16}
-          />
+          <RefreshCw size={16} />
           새로고침
         </button>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          padding: 22,
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 16,
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "flex-start",
+            }}
+          >
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 14,
+                background: "#f1edff",
+                color: "#6147a8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <UserRound size={20} />
+            </div>
+
+            <div>
+              <strong
+                style={{
+                  display: "block",
+                  marginBottom: 6,
+                }}
+              >
+                내 닉네임
+              </strong>
+
+              {isProfileLoading ? (
+                <span className="sub">
+                  닉네임을 확인하는 중...
+                </span>
+              ) : !isEditingNickname ? (
+                <>
+                  <div
+                    style={{
+                      fontSize: 18,
+                      fontWeight: 800,
+                      marginBottom: 6,
+                    }}
+                  >
+                    {profile?.nickname ||
+                      "아직 설정하지 않았어요."}
+                  </div>
+
+                  <p
+                    className="sub"
+                    style={{
+                      margin: 0,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    챌린지에서 닉네임으로 참여할 경우 이 이름으로 표시됩니다.
+                  </p>
+                </>
+              ) : (
+                <div
+                  style={{
+                    marginTop: 8,
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={nickname}
+                    onChange={event =>
+                      setNickname(
+                        event.target.value
+                      )
+                    }
+                    maxLength={12}
+                    placeholder="2~12자 닉네임"
+                    disabled={isSavingNickname}
+                    style={{
+                      width: "100%",
+                      maxWidth: 300,
+                      padding: "11px 13px",
+                      border:
+                        "1px solid #ddd",
+                      borderRadius: 12,
+                      font: "inherit",
+                    }}
+                  />
+
+                  <div
+                    style={{
+                      marginTop: 6,
+                      color: "#999",
+                      fontSize: 12,
+                    }}
+                  >
+                    {nickname.trim().length}/12자 ·
+                    다른 구성원과 중복할 수 없습니다.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {!isProfileLoading &&
+            (!isEditingNickname ? (
+              <button
+                type="button"
+                className="soft"
+                onClick={() => {
+                  setNickname(
+                    profile?.nickname || ""
+                  );
+                  setIsEditingNickname(true);
+                }}
+              >
+                <Pencil size={15} />
+                {profile
+                  ? "닉네임 변경"
+                  : "닉네임 설정"}
+              </button>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  className="soft"
+                  onClick={() => {
+                    setNickname(
+                      profile?.nickname || ""
+                    );
+                    setIsEditingNickname(false);
+                  }}
+                  disabled={isSavingNickname}
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleSaveNickname}
+                  disabled={
+                    isSavingNickname ||
+                    nickname.trim().length < 2
+                  }
+                >
+                  {isSavingNickname
+                    ? "저장 중..."
+                    : "저장"}
+                </button>
+              </div>
+            ))}
+        </div>
       </div>
 
       <div
@@ -402,51 +576,29 @@ export default function MyVoice({
       <div
         style={{
           display: "grid",
-          gap: 14,
+          gap: 12,
         }}
       >
         {isLoading ? (
           <div className="card">
             내 게시글을 불러오는 중...
           </div>
-        ) : posts.length ===
-          0 ? (
+        ) : posts.length === 0 ? (
           <div className="empty">
-            아직 작성한 게시글이
-            없습니다.
+            아직 작성한 게시글이 없습니다.
           </div>
         ) : (
           posts.map(post => {
-            const formattedDate =
-              post.created_at
-                ? new Date(
-                    post.created_at
-                  ).toLocaleDateString(
-                    "ko-KR"
-                  )
-                : "";
-
-            const isOpened =
-              openedPostId ===
-              post.id;
-
-            const comments =
-              commentsByPost[
+            const replyInfo =
+              replyInfoByPost[
                 post.id
-              ] ?? [];
-
-            const adminComments =
-              comments.filter(
-                comment =>
-                  comment.is_admin
-              );
-
-            const isCommentLoading =
-              commentLoadingPostId ===
-              post.id;
+              ] || {
+                totalCount: 0,
+                hasAdminReply: false,
+              };
 
             const displayStatus =
-              adminComments.length > 0
+              replyInfo.hasAdminReply
                 ? "답변완료"
                 : post.status ||
                   "접수";
@@ -456,400 +608,134 @@ export default function MyVoice({
                 key={post.id}
                 className="card"
                 style={{
-                  padding: 0,
-                  overflow:
-                    "hidden",
+                  padding: "18px 22px",
                 }}
               >
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleTogglePost(
-                      post.id
-                    )
-                  }
+                <div
                   style={{
-                    width: "100%",
-                    padding: 22,
-                    border: 0,
-                    background:
-                      "transparent",
-                    color: "inherit",
-                    font: "inherit",
-                    textAlign:
-                      "left",
-                    cursor:
-                      "pointer",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 16,
                   }}
                 >
                   <div
                     style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems:
-                        "center",
-                      gap: 12,
-                      marginBottom:
-                        12,
+                      minWidth: 0,
+                      flex: 1,
                     }}
                   >
                     <div
                       style={{
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
+                        display: "flex",
+                        alignItems: "center",
                         gap: 8,
-                        flexWrap:
-                          "wrap",
+                        flexWrap: "wrap",
+                        marginBottom: 9,
                       }}
                     >
                       <span
                         style={{
-                          fontSize:
-                            13,
-                          fontWeight:
-                            800,
+                          fontSize: 13,
+                          fontWeight: 800,
                         }}
                       >
-                        {post.category ||
-                          "기타"}
+                        {post.category || "기타"}
                       </span>
 
                       {post.admin_only && (
                         <span
                           style={{
-                            display:
-                              "inline-flex",
-                            alignItems:
-                              "center",
+                            display: "inline-flex",
+                            alignItems: "center",
                             gap: 5,
-                            padding:
-                              "5px 9px",
-                            borderRadius:
-                              999,
-                            background:
-                              "#f1edff",
-                            color:
-                              "#6147a8",
-                            fontSize:
-                              12,
-                            fontWeight:
-                              800,
+                            padding: "4px 8px",
+                            borderRadius: 999,
+                            background: "#f1edff",
+                            color: "#6147a8",
+                            fontSize: 11,
+                            fontWeight: 800,
                           }}
                         >
-                          <Lock
-                            size={
-                              13
-                            }
-                          />
-                          운영자에게
-                          전달
+                          <Lock size={12} />
+                          운영자에게 전달
                         </span>
                       )}
                     </div>
 
-                    <div
+                    <h3
                       style={{
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
-                        gap: 8,
+                        margin: 0,
+                        fontSize: 17,
+                        lineHeight: 1.45,
+                        wordBreak: "break-word",
                       }}
                     >
-                      {adminComments.length >
-                        0 && (
-                        <span
-                          style={{
-                            padding:
-                              "5px 9px",
-                            borderRadius:
-                              999,
-                            background:
-                              "#f1edff",
-                            color:
-                              "#6147a8",
-                            fontSize:
-                              12,
-                            fontWeight:
-                              800,
-                          }}
-                        >
-                          답변{" "}
-                          {
-                            adminComments.length
-                          }
-                          개
-                        </span>
-                      )}
-
-                      <span
-                        style={{
-                          padding:
-                            "5px 9px",
-                          borderRadius:
-                            999,
-                          background:
-                            displayStatus ===
-                            "답변완료"
-                              ? "#eaf7ef"
-                              : "#e8eef9",
-                          color:
-                            displayStatus ===
-                            "답변완료"
-                              ? "#247044"
-                              : "#0e2d69",
-                          fontSize:
-                            12,
-                          fontWeight:
-                            800,
-                        }}
-                      >
-                        {
-                          displayStatus
-                        }
-                      </span>
-
-                      {isOpened ? (
-                        <ChevronUp
-                          size={18}
-                        />
-                      ) : (
-                        <ChevronDown
-                          size={18}
-                        />
-                      )}
-                    </div>
+                      {post.title}
+                    </h3>
                   </div>
 
-                  <h3
+                  <span
                     style={{
-                      marginBottom:
-                        8,
+                      flexShrink: 0,
+                      padding: "5px 9px",
+                      borderRadius: 999,
+                      background:
+                        displayStatus === "답변완료"
+                          ? "#eaf7ef"
+                          : "#e8eef9",
+                      color:
+                        displayStatus === "답변완료"
+                          ? "#247044"
+                          : "#0e2d69",
+                      fontSize: 12,
+                      fontWeight: 800,
                     }}
                   >
-                    {post.title}
-                  </h3>
-
-                  <p
-                    className="sub"
-                    style={{
-                      marginBottom:
-                        16,
-                      whiteSpace:
-                        "pre-line",
-                    }}
-                  >
-                    {post.content}
-                  </p>
-
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems:
-                        "center",
-                      gap: 12,
-                      fontSize: 13,
-                    }}
-                  >
-                    <span>
-                      {post.store ||
-                        "매장 정보 없음"}{" "}
-                      ·{" "}
-                      {
-                        formattedDate
-                      }
-                    </span>
-
-                    <span>
-                      공감{" "}
-                      {post.likes ??
-                        0}
-                    </span>
-                  </div>
-                </button>
+                    {displayStatus}
+                  </span>
+                </div>
 
                 <div
                   style={{
-                    padding:
-                      "0 22px 18px",
                     display: "flex",
-                    justifyContent:
-                      "flex-end",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    marginTop: 16,
+                    paddingTop: 14,
+                    borderTop:
+                      "1px solid #edf1f6",
                   }}
                 >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      color: "#667085",
+                      fontSize: 13,
+                    }}
+                  >
+                    <MessageCircle size={15} />
+                    답글 {replyInfo.totalCount}
+                  </span>
+
                   <button
                     type="button"
                     className="soft"
                     onClick={() =>
-                      handleOpenDetail(
-                        post
-                      )
+                      handleOpenDetail(post)
                     }
-                  >
-                    <Settings2
-                      size={16}
-                    />
-                    상세 / 수정·삭제
-                  </button>
-                </div>
-
-                {isOpened && (
-                  <div
                     style={{
-                      padding:
-                        "20px 22px 22px",
-                      borderTop:
-                        "1px solid #ececec",
-                      background:
-                        "#fafafa",
+                      padding: "7px 11px",
+                      fontSize: 13,
                     }}
                   >
-                    <div
-                      style={{
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
-                        gap: 8,
-                        marginBottom:
-                          14,
-                      }}
-                    >
-                      <MessageCircle
-                        size={18}
-                      />
-
-                      <strong>
-                        운영진 답변
-                      </strong>
-
-                      <span
-                        style={{
-                          color:
-                            "#777",
-                          fontSize:
-                            13,
-                        }}
-                      >
-                        {
-                          adminComments.length
-                        }
-                        개
-                      </span>
-                    </div>
-
-                    {isCommentLoading ? (
-                      <div className="empty">
-                        답변을 불러오는
-                        중...
-                      </div>
-                    ) : adminComments.length ===
-                      0 ? (
-                      <div className="empty">
-                        아직 등록된
-                        운영진 답변이
-                        없습니다.
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          display:
-                            "grid",
-                          gap: 10,
-                        }}
-                      >
-                        {adminComments.map(
-                          comment => {
-                            const commentDate =
-                              comment.created_at
-                                ? new Date(
-                                    comment.created_at
-                                  ).toLocaleString(
-                                    "ko-KR"
-                                  )
-                                : "";
-
-                            return (
-                              <div
-                                key={
-                                  comment.id
-                                }
-                                style={{
-                                  padding:
-                                    16,
-                                  border:
-                                    "1px solid #e8e8e8",
-                                  borderRadius:
-                                    14,
-                                  background:
-                                    "#fff",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    display:
-                                      "flex",
-                                    justifyContent:
-                                      "space-between",
-                                    alignItems:
-                                      "center",
-                                    gap: 12,
-                                    marginBottom:
-                                      8,
-                                  }}
-                                >
-                                  <strong
-                                    style={{
-                                      fontSize:
-                                        14,
-                                    }}
-                                  >
-                                    운영진
-                                  </strong>
-
-                                  <span
-                                    style={{
-                                      color:
-                                        "#999",
-                                      fontSize:
-                                        12,
-                                    }}
-                                  >
-                                    {
-                                      commentDate
-                                    }
-                                  </span>
-                                </div>
-
-                                <p
-                                  style={{
-                                    margin:
-                                      0,
-                                    lineHeight:
-                                      1.65,
-                                    whiteSpace:
-                                      "pre-line",
-                                  }}
-                                >
-                                  {
-                                    comment.content
-                                  }
-                                </p>
-                              </div>
-                            );
-                          }
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    상세보기
+                    <ChevronRight size={15} />
+                  </button>
+                </div>
               </article>
             );
           })

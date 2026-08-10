@@ -1,5 +1,6 @@
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #F7F9FC; color: #1D2433; }
+body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-
+button, input, select, textarea { font: inherit; }
 button, select, textarea { font: inherit; }
 .app { display: flex; min-height: 100vh; }
 .sidebar { width: 260px; background: #F8FAFF; border-right: 1px solid #DDE5F3; padding: 28px 18px; position: sticky; top: 0; height: 100vh; }
@@ -1191,16 +1192,6 @@ textarea { min-height: 160px; resize: vertical; }
   font-weight: 800;
 }
 
-.admin-content-card {
-  opacity: 0;
-  animation: adminCardIn 420ms cubic-bezier(.2,.8,.2,1) forwards;
-}
-
-@keyframes adminCardIn {
-  from { opacity: 0; transform: translateY(12px) scale(.985); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
 .admin-dropzone {
   width: 100%;
   min-height: 150px;
@@ -1357,4 +1348,326 @@ textarea { min-height: 160px; resize: vertical; }
   .admin-toast { top: 14px; right: 14px; left: 14px; min-width: 0; }
   .admin-image-preview { grid-template-columns: 64px 1fr 32px; }
   .admin-image-preview img { width: 64px; height: 58px; }
+}
+
+/* =========================================================
+   COMMON UI
+========================================================= */
+
+/* 기본 폼 요소 */
+.ui-input,
+.ui-select,
+.ui-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #dfe5ef;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #162033;
+  font: inherit;
+  outline: none;
+  transition: border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.ui-input,
+.ui-select {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.ui-textarea {
+  padding: 14px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.ui-input::placeholder,
+.ui-textarea::placeholder {
+  color: #9aa3b1;
+}
+
+.ui-input:focus,
+.ui-select:focus,
+.ui-textarea:focus {
+  border-color: #123a79;
+  box-shadow: 0 0 0 3px rgba(18, 58, 121, 0.08);
+}
+
+.ui-input:disabled,
+.ui-select:disabled,
+.ui-textarea:disabled {
+  background: #f5f7fa;
+  color: #9aa3b1;
+  cursor: not-allowed;
+}
+
+
+/* 공통 버튼 */
+.btn-primary,
+.btn-soft,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 42px;
+  padding: 9px 15px;
+
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+
+/* 메인 액션 */
+.btn-primary {
+  border: 1px solid #123a79;
+  background: #123a79;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(18, 58, 121, 0.12);
+}
+
+.btn-primary:hover {
+  background: #0f3269;
+  border-color: #0f3269;
+}
+
+
+/* 서브 액션 */
+.btn-soft {
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #123a79;
+}
+
+.btn-soft:hover {
+  background: #f5f8fd;
+  border-color: #c7d3e5;
+}
+
+
+/* 삭제 */
+.btn-danger {
+  border: 1px solid #f1caca;
+  background: #fffafa;
+  color: #b43b3b;
+}
+
+.btn-danger:hover {
+  background: #fff1f1;
+  border-color: #e8b3b3;
+}
+
+
+/* 비활성 버튼 */
+.btn-primary:disabled,
+.btn-soft:disabled,
+.btn-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* 작게 쓰는 버튼 */
+.btn-small {
+  min-height: 36px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+
+/* 버튼 너비 전체 */
+.btn-full {
+  width: 100%;
+}
+
+
+/* 뒤로가기처럼 가벼운 버튼 */
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 11px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+
+  background: #ffffff;
+  color: #475569;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.btn-back:hover {
+  background: #f8fafc;
+  color: #123a79;
+}
+
+.adminLoginPanel {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 42px 36px;
+}
+
+.adminLoginIcon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 18px;
+  background: #eef4ff;
+  color: #163a73;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adminLoginForm {
+  width: 100%;
+  max-width: 380px;
+  margin: 24px auto 0;
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.adminLoginForm input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #dde5f3;
+  border-radius: 12px;
+  background: #f9fbff;
+  outline: none;
+}
+
+.adminLoginForm button {
+  height: 48px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: #163a73;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* 운영진 FAQ - 카테고리 아코디언 */
+
+.admin-faq-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.admin-faq-group {
+  overflow: hidden;
+  border: 1px solid #e4eaf3;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.admin-faq-group-header {
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 18px;
+  border: 0;
+  background: #f8faff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #1d2433;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-faq-group-header:hover {
+  background: #f2f6fc;
+}
+
+.admin-faq-group-header span:last-child {
+  color: #73819a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-faq-items {
+  padding: 0 18px;
+}
+
+.admin-faq-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 0;
+  border-bottom: 1px solid #edf1f6;
+}
+
+.admin-faq-item:last-child {
+  border-bottom: 0;
+}
+
+.admin-faq-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-faq-main h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #1d2433;
+}
+
+.admin-faq-main h3 span {
+  color: #163a73;
+  margin-right: 4px;
+}
+
+.admin-faq-main p {
+  margin: 8px 0 0;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.65;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.admin-faq-main p span {
+  color: #163a73;
+  font-weight: 700;
+}
+
+.admin-faq-main .admin-card-date {
+  margin-top: 10px;
+  font-size: 11px;
+}
+
+.admin-faq-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.admin-faq-actions button {
+  padding: 4px 2px;
+  background: transparent;
 }

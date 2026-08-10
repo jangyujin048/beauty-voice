@@ -21,24 +21,136 @@ export default function FAQ({
         반복 문의와 운영 기준을 빠르게 확인할 수 있는 공간입니다.
       </p>
 
-      <div className="form" style={{ maxWidth: 560 }}>
-        <label>FAQ 카테고리</label>
-        <select
-          value={faqCategoryFilter}
-          onChange={(e) => setFaqCategoryFilter(e.target.value)}
-        >
-          {faqCategories.map((category) => (
-            <option key={category}>{category}</option>
-          ))}
-        </select>
+<div
+  style={{
+    maxWidth: 680,
+    marginTop: 28,
+    marginBottom: 26,
+  }}
+>
+  {/* 카테고리 */}
+  <div style={{ marginBottom: 16 }}>
+    <label
+      style={{
+        display: "block",
+        marginBottom: 8,
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#1D2433",
+      }}
+    >
+      FAQ 카테고리
+    </label>
 
-        <label>FAQ 검색</label>
-        <input
-          value={faqKeyword}
-          onChange={(e) => setFaqKeyword(e.target.value)}
-          placeholder="예: 교육 신청, 뷰티맨션, Color Fit"
-        />
-      </div>
+    <select
+      value={faqCategoryFilter}
+      onChange={(e) =>
+        setFaqCategoryFilter(e.target.value)
+      }
+      style={{
+        width: "100%",
+        height: 48,
+        padding: "0 14px",
+        border: "1px solid #DDE5F3",
+        borderRadius: 12,
+        background: "#F9FBFF",
+        color: "#1D2433",
+        fontSize: 14,
+        outline: "none",
+        cursor: "pointer",
+      }}
+    >
+      {faqCategories.map((category) => (
+        <option
+          key={category}
+          value={category}
+        >
+          {category}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  {/* 검색 */}
+  <div>
+    <label
+      style={{
+        display: "block",
+        marginBottom: 8,
+        fontSize: 14,
+        fontWeight: 700,
+        color: "#1D2433",
+      }}
+    >
+      FAQ 검색
+    </label>
+
+    <div
+      style={{
+        position: "relative",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 15,
+          top: "50%",
+          transform: "translateY(-50%)",
+          fontSize: 16,
+          pointerEvents: "none",
+        }}
+      >
+        🔍
+      </span>
+
+      <input
+        type="search"
+        value={faqKeyword}
+        onChange={(e) =>
+          setFaqKeyword(e.target.value)
+        }
+        placeholder="시스템, 건의, 운영 검색"
+        style={{
+          width: "100%",
+          height: 48,
+          padding: "0 42px",
+          border: "1px solid #DDE5F3",
+          borderRadius: 12,
+          background: "#F9FBFF",
+          color: "#1D2433",
+          fontSize: 14,
+          outline: "none",
+        }}
+      />
+
+      {faqKeyword && (
+        <button
+          type="button"
+          onClick={() => setFaqKeyword("")}
+          aria-label="검색어 지우기"
+          style={{
+            position: "absolute",
+            right: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: 28,
+            height: 28,
+            padding: 0,
+            border: 0,
+            borderRadius: 8,
+            background: "transparent",
+            color: "#98A2B3",
+            fontSize: 16,
+            cursor: "pointer",
+          }}
+        >
+          ×
+        </button>
+      )}
+    </div>
+  </div>
+</div>
 
       <div className="faq-list">
         {filteredFaqs.length === 0 && (

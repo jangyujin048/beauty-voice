@@ -351,23 +351,33 @@ export default function BeautyVoiceBoard() {
           {selectedCategory} {visiblePosts.length}건
         </p>
 
-        <select
-          aria-label="게시글 정렬 방식"
-          value={sortType}
-          onChange={event =>
-            setSortType(event.target.value)
-          }
-          style={styles.sortSelect}
-        >
-          {SORT_OPTIONS.map(option => (
-            <option
-              key={option.value}
-              value={option.value}
-            >
-              {option.label}
-            </option>
-          ))}
-        </select>
+<div style={styles.toolbar}>
+  <p style={styles.resultCount}>
+    {selectedCategory} {visiblePosts.length}건
+  </p>
+
+  <select
+    aria-label="게시글 정렬 방식"
+    value={sortType}
+    onChange={event =>
+      setSortType(event.target.value)
+    }
+    className="ui-select"
+    style={{
+      width: "auto",
+      minWidth: 120,
+    }}
+  >
+    {SORT_OPTIONS.map(option => (
+      <option
+        key={option.value}
+        value={option.value}
+      >
+        {option.label}
+      </option>
+    ))}
+  </select>
+</div>
       </div>
 
       <div style={styles.postList}>

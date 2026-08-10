@@ -31,13 +31,21 @@ function getInitialForm(initialPost) {
   return {
     category:
       initialPost?.category || CATEGORIES[0],
-    title: initialPost?.title || "",
-    content: initialPost?.content || "",
+
+    title:
+      initialPost?.title || "",
+
+    content:
+      initialPost?.content || "",
+
     store:
       initialPost?.store || STORES[0],
+
     adminOnly:
       Boolean(initialPost?.admin_only),
+
     imageFile: null,
+
     imageUrl:
       initialPost?.image_url || "",
   };
@@ -60,24 +68,32 @@ export default function WritePost({
     useState(false);
 
   useEffect(() => {
-    setForm(getInitialForm(initialPost));
+    setForm(
+      getInitialForm(initialPost)
+    );
   }, [initialPost]);
 
-  const imagePreviewUrl = useMemo(() => {
-    if (form.imageFile) {
-      return URL.createObjectURL(
-        form.imageFile
-      );
-    }
+  const imagePreviewUrl =
+    useMemo(() => {
+      if (form.imageFile) {
+        return URL.createObjectURL(
+          form.imageFile
+        );
+      }
 
-    return form.imageUrl || "";
-  }, [form.imageFile, form.imageUrl]);
+      return form.imageUrl || "";
+    }, [
+      form.imageFile,
+      form.imageUrl,
+    ]);
 
   useEffect(() => {
     return () => {
       if (
         imagePreviewUrl &&
-        imagePreviewUrl.startsWith("blob:")
+        imagePreviewUrl.startsWith(
+          "blob:"
+        )
       ) {
         URL.revokeObjectURL(
           imagePreviewUrl
@@ -97,6 +113,7 @@ export default function WritePost({
 
     setForm(previous => ({
       ...previous,
+
       [name]:
         type === "checkbox"
           ? checked
@@ -127,7 +144,10 @@ export default function WritePost({
         "image/"
       )
     ) {
-      alert("이미지 파일만 첨부할 수 있습니다.");
+      alert(
+        "이미지 파일만 첨부할 수 있습니다."
+      );
+
       return;
     }
 
@@ -169,16 +189,23 @@ export default function WritePost({
       return;
     }
 
-    const title = form.title.trim();
-    const content = form.content.trim();
+    const title =
+      form.title.trim();
+
+    const content =
+      form.content.trim();
 
     if (!title) {
-      alert("제목을 입력해주세요.");
+      alert(
+        "제목을 입력해주세요."
+      );
       return;
     }
 
     if (!content) {
-      alert("내용을 입력해주세요.");
+      alert(
+        "내용을 입력해주세요."
+      );
       return;
     }
 
@@ -193,23 +220,30 @@ export default function WritePost({
     <section className="panel">
       <button
         type="button"
+        className="btn-back"
         onClick={onBack}
         disabled={isSubmitting}
         style={{
-          marginBottom: 20,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
+          marginBottom: 22,
         }}
       >
-        <ArrowLeft size={18} />
+        <ArrowLeft size={16} />
+
         {isEditing
           ? "게시글로 돌아가기"
           : "목록으로"}
       </button>
 
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ marginBottom: 8 }}>
+      <div
+        style={{
+          marginBottom: 28,
+        }}
+      >
+        <h2
+          style={{
+            marginBottom: 8,
+          }}
+        >
           {isEditing
             ? "Beauty Voice 수정"
             : "Beauty Voice 작성"}
@@ -236,15 +270,18 @@ export default function WritePost({
           value={form.category}
           onChange={handleChange}
           disabled={isSubmitting}
+          className="ui-select"
         >
-          {CATEGORIES.map(category => (
-            <option
-              key={category}
-              value={category}
-            >
-              {category}
-            </option>
-          ))}
+          {CATEGORIES.map(
+            category => (
+              <option
+                key={category}
+                value={category}
+              >
+                {category}
+              </option>
+            )
+          )}
         </select>
 
         <label htmlFor="title">
@@ -259,6 +296,7 @@ export default function WritePost({
           placeholder="게시글 제목을 입력해주세요."
           maxLength={80}
           disabled={isSubmitting}
+          className="ui-input"
         />
 
         <label htmlFor="content">
@@ -273,6 +311,7 @@ export default function WritePost({
           placeholder="의견이나 경험을 자유롭게 작성해주세요."
           rows={10}
           disabled={isSubmitting}
+          className="ui-textarea"
         />
 
         <label htmlFor="store">
@@ -285,6 +324,7 @@ export default function WritePost({
           value={form.store}
           onChange={handleChange}
           disabled={isSubmitting}
+          className="ui-select"
         >
           {STORES.map(store => (
             <option
@@ -297,11 +337,16 @@ export default function WritePost({
         </select>
 
         <label
-          className="check"
           style={{
             display: "flex",
             alignItems: "flex-start",
-            gap: 10,
+            gap: 12,
+            padding: 16,
+            border:
+              "1px solid #dfe5ef",
+            borderRadius: 14,
+            background: "#f8faff",
+            cursor: "pointer",
           }}
         >
           <input
@@ -310,6 +355,9 @@ export default function WritePost({
             checked={form.adminOnly}
             onChange={handleChange}
             disabled={isSubmitting}
+            style={{
+              marginTop: 3,
+            }}
           />
 
           <span>
@@ -318,7 +366,8 @@ export default function WritePost({
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                fontWeight: 700,
+                fontWeight: 800,
+                color: "#162033",
               }}
             >
               <Lock size={16} />
@@ -329,26 +378,31 @@ export default function WritePost({
               className="sub"
               style={{
                 display: "block",
-                marginTop: 4,
+                marginTop: 5,
+                lineHeight: 1.6,
               }}
             >
-              선택하면 게시판에 공개되지 않으며
-              운영자만 확인할 수 있습니다.
+              선택하면 게시판에
+              공개되지 않으며 운영자만
+              확인할 수 있습니다.
             </span>
           </span>
         </label>
 
-        <label>사진 첨부</label>
+        <label>
+          사진 첨부
+        </label>
 
         {imagePreviewUrl ? (
           <div
             style={{
               position: "relative",
               border:
-                "1px solid rgba(15, 23, 42, 0.1)",
+                "1px solid #dfe5ef",
               borderRadius: 16,
               padding: 12,
               overflow: "hidden",
+              background: "#ffffff",
             }}
           >
             <img
@@ -365,20 +419,21 @@ export default function WritePost({
 
             <button
               type="button"
-              onClick={handleRemoveImage}
+              onClick={
+                handleRemoveImage
+              }
               disabled={isSubmitting}
               aria-label="첨부 이미지 제거"
+              className="btn-soft"
               style={{
                 position: "absolute",
                 top: 20,
                 right: 20,
-                width: 34,
-                height: 34,
+                width: 36,
+                height: 36,
+                minHeight: 36,
                 padding: 0,
                 borderRadius: 999,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
               }}
             >
               <X size={17} />
@@ -393,42 +448,60 @@ export default function WritePost({
             }
             onKeyDown={event => {
               if (
-                event.key === "Enter" ||
+                event.key ===
+                  "Enter" ||
                 event.key === " "
               ) {
                 fileInputRef.current?.click();
               }
             }}
             onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            onDragOver={
+              handleDragOver
+            }
+            onDragLeave={
+              handleDragLeave
+            }
             style={{
               border: isDragging
-                ? "1px solid #111827"
-                : "1px dashed #c9c9c9",
+                ? "1px solid #123a79"
+                : "1px dashed #c8d3e3",
+
               borderRadius: 14,
-              padding: 22,
+              padding: 26,
+
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent:
+                "center",
               gap: 10,
+
               cursor: isSubmitting
                 ? "not-allowed"
                 : "pointer",
+
               opacity: isSubmitting
                 ? 0.6
                 : 1,
+
               background: isDragging
-                ? "rgba(15, 23, 42, 0.04)"
-                : "transparent",
+                ? "#f3f7fd"
+                : "#fafcff",
+
+              color: "#64748b",
               textAlign: "center",
+
+              transition:
+                "all 0.18s ease",
             }}
           >
-            <ImagePlus size={20} />
+            <ImagePlus
+              size={21}
+            />
 
             <span>
-              이미지를 끌어놓거나 클릭해
-              선택해주세요.
+              이미지를 끌어놓거나
+              클릭해 선택해주세요.
             </span>
 
             <input
@@ -436,16 +509,26 @@ export default function WritePost({
               type="file"
               name="imageFile"
               accept="image/*"
-              onChange={handleChange}
-              disabled={isSubmitting}
-              style={{ display: "none" }}
+              onChange={
+                handleChange
+              }
+              disabled={
+                isSubmitting
+              }
+              style={{
+                display: "none",
+              }}
             />
           </div>
         )}
 
         <button
           type="submit"
+          className="btn-primary btn-full"
           disabled={isSubmitting}
+          style={{
+            marginTop: 8,
+          }}
         >
           <Send size={18} />
 

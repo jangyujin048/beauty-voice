@@ -41,7 +41,13 @@ const CONFIG = {
 
 function emptyForm(type) {
   if (type === "notice") {
-    return { title: "", body: "", imageFile: null, imageUrl: "" };
+    return {
+      title: "",
+      body: "",
+      imageFile: null,
+      imageUrl: "",
+      isFeatured: false,
+    };
   }
   if (type === "faq") {
     return { category: "교육", question: "", answer: "" };
@@ -188,6 +194,25 @@ export default function AdminContentManager({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [toast, setToast] = useState(null);
 
+const [
+  openFaqAdminCategories,
+  setOpenFaqAdminCategories,
+] = useState(
+  faqCategories.filter(
+    category => category !== "전체"
+  )
+);
+
+function toggleAdminFaqCategory(category) {
+  setOpenFaqAdminCategories(previous =>
+    previous.includes(category)
+      ? previous.filter(
+          item => item !== category
+        )
+      : [...previous, category]
+  );
+}
+
   useEffect(() => {
     setForm(emptyForm(type));
     setEditingItem(null);
@@ -225,8 +250,14 @@ export default function AdminContentManager({
 
   function openEdit(item) {
     setEditingItem(item);
-    if (type === "notice") {
-      setForm({ title: item.title || "", body: item.body || "", imageFile: null, imageUrl: item.image_url || "" });
+if (type === "notice") {
+  setForm({
+    title: item.title || "",
+    body: item.body || "",
+    imageFile: null,
+    imageUrl: item.image_url || "",
+    isFeatured: Boolean(item.is_featured),
+  });
     } else if (type === "faq") {
       setForm({ category: item.category || "기타", question: item.question || "", answer: item.answer || "" });
     } else {
@@ -277,7 +308,12 @@ export default function AdminContentManager({
       if (type === "notice") {
         let imageUrl = form.imageUrl || "";
         if (form.imageFile) imageUrl = await uploadImage(form.imageFile);
-        payload = { title: form.title.trim(), body: form.body.trim(), image_url: imageUrl };
+        payload = {
+  title: form.title.trim(),
+  body: form.body.trim(),
+  image_url: imageUrl,
+  is_featured: Boolean(form.isFeatured),
+};
       } else if (type === "faq") {
         payload = { category: form.category, question: form.question.trim(), answer: form.answer.trim() };
       } else {
@@ -363,49 +399,223 @@ export default function AdminContentManager({
         </div>
       )}
 
-      {visibleItems.length === 0 ? (
-        <div className="admin-empty-state">
-          <div className="admin-empty-icon">{config.icon}</div>
-          <h3>{keyword ? "검색 결과가 없습니다." : `아직 등록된 ${config.label}이 없습니다.`}</h3>
-          <p>{keyword ? "다른 검색어로 다시 확인해보세요." : `새 ${config.singular}을 등록해보세요.`}</p>
-          {!keyword && <button type="button" className="admin-secondary-button" onClick={openCreate}>새 {config.singular} 작성</button>}
-        </div>
-      ) : (
-        <div className="admin-content-grid">
-          {visibleItems.map((item, index) => (
-            <article key={item.id} className="admin-content-card" style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}>
-              <div className="admin-card-top">
-                <div className="admin-card-icon">{config.icon}</div>
-                {type === "faq" && <span className="admin-category-badge">{item.category || "기타"}</span>}
-                {type === "insight" && <span className="admin-category-badge">{item.month}</span>}
-                <div className="admin-card-actions">
-                  <button type="button" className="admin-icon-button" onClick={() => openEdit(item)} aria-label="수정">✏️</button>
-                  <button type="button" className="admin-icon-button danger" onClick={() => setDeleteTarget(item)} aria-label="삭제">🗑️</button>
-                </div>
+{visibleItems.length === 0 ? (
+  <div className="admin-empty-state">
+    <div className="admin-empty-icon">
+      {config.icon}
+    </div>
+
+    <h3>
+      {keyword
+        ? "검색 결과가 없습니다."
+        : `아직 등록된 ${config.label}이 없습니다.`}
+    </h3>
+
+    <p>
+      {keyword
+        ? "다른 검색어로 다시 확인해보세요."
+        : `새 ${config.singular}을 등록해보세요.`}
+    </p>
+
+    {!keyword && (
+      <button
+        type="button"
+        className="admin-secondary-button"
+        onClick={openCreate}
+      >
+        새 {config.singular} 작성
+      </button>
+    )}
+  </div>
+) : type === "faq" ? (
+  <div className="admin-faq-list">
+    {faqCategories
+      .filter(
+        category => category !== "전체"
+      )
+      .map(category => {
+        const categoryItems =
+          visibleItems.filter(
+            item =>
+              (item.category || "기타") ===
+              category
+          );
+
+        if (categoryItems.length === 0) {
+          return null;
+        }
+
+        const isOpen =
+          openFaqAdminCategories.includes(
+            category
+          );
+
+        return (
+          <section
+            key={category}
+            className="admin-faq-group"
+          >
+            <button
+              type="button"
+              className="admin-faq-group-header"
+              onClick={() =>
+                toggleAdminFaqCategory(
+                  category
+                )
+              }
+            >
+              <span>
+                {isOpen ? "▼" : "▶"}{" "}
+                {category}
+              </span>
+
+              <span>
+                {categoryItems.length}개
+              </span>
+            </button>
+
+            {isOpen && (
+              <div className="admin-faq-items">
+                {categoryItems.map(item => (
+                  <article
+                    key={item.id}
+                    className="admin-faq-item"
+                  >
+                    <div className="admin-faq-main">
+                      <h3>
+                        <span>Q.</span>{" "}
+                        {item.question}
+                      </h3>
+
+                      <p>
+                        <span>A.</span>{" "}
+                        {item.answer}
+                      </p>
+
+                      <div className="admin-card-date">
+                        <span>
+                          등록 ·{" "}
+                          {formatDate(
+                            item.created_at
+                          )}
+                        </span>
+
+                        {item.updated_at && (
+                          <span className="admin-updated-label">
+                            ✏ 수정됨 ·{" "}
+                            {formatDate(
+                              item.updated_at
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="admin-faq-actions">
+                      <button
+                        type="button"
+                        className="admin-text-button"
+                        onClick={() =>
+                          openEdit(item)
+                        }
+                      >
+                        수정
+                      </button>
+
+                      <button
+                        type="button"
+                        className="admin-text-button danger"
+                        onClick={() =>
+                          setDeleteTarget(item)
+                        }
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
+            )}
+          </section>
+        );
+      })}
+  </div>
+) : (
+  <div className="admin-content-grid">
+    {visibleItems.map(item => (
+      <article
+        key={item.id}
+        className="admin-content-card"
+      >
+        {type === "insight" && (
+          <div className="admin-card-top">
+            <span className="admin-category-badge">
+              {item.month}
+            </span>
+          </div>
+        )}
 
-              <div className="admin-card-content">
-                <h3>{type === "faq" ? `Q. ${item.question}` : item[config.titleField]}</h3>
-                <div className="admin-card-date">
-                  <span>등록 · {formatDate(item.created_at)}</span>
-                  {item.updated_at && <span className="admin-updated-label">✏ 수정됨 · {formatDate(item.updated_at)}</span>}
-                </div>
-                <p className="admin-card-preview">{type === "faq" ? `A. ${item.answer}` : item[config.bodyField]}</p>
-              </div>
+        <div className="admin-card-content">
+          <h3>
+            {item[config.titleField]}
+          </h3>
 
-              {config.imageField && item[config.imageField] && (
-                <div className="admin-card-thumbnail"><img src={item[config.imageField]} alt="" /></div>
-              )}
+          <div className="admin-card-date">
+            <span>
+              등록 ·{" "}
+              {formatDate(item.created_at)}
+            </span>
 
-              <footer className="admin-card-footer">
-                <button type="button" className="admin-text-button" onClick={() => openEdit(item)}>수정</button>
-                <button type="button" className="admin-text-button danger" onClick={() => setDeleteTarget(item)}>삭제</button>
-              </footer>
-            </article>
-          ))}
+            {item.updated_at && (
+              <span className="admin-updated-label">
+                ✏ 수정됨 ·{" "}
+                {formatDate(
+                  item.updated_at
+                )}
+              </span>
+            )}
+          </div>
+
+          <p className="admin-card-preview">
+            {item[config.bodyField]}
+          </p>
         </div>
-      )}
 
+        {config.imageField &&
+          item[config.imageField] && (
+            <div className="admin-card-thumbnail">
+              <img
+                src={item[config.imageField]}
+                alt=""
+              />
+            </div>
+          )}
+
+        <footer className="admin-card-footer">
+          <button
+            type="button"
+            className="admin-text-button"
+            onClick={() =>
+              openEdit(item)
+            }
+          >
+            수정
+          </button>
+
+          <button
+            type="button"
+            className="admin-text-button danger"
+            onClick={() =>
+              setDeleteTarget(item)
+            }
+          >
+            삭제
+          </button>
+        </footer>
+      </article>
+    ))}
+  </div>
+)}
       <AdminModal
         open={formOpen}
         title={editingItem ? `${config.singular} 수정` : `새 ${config.singular}`}
@@ -450,7 +660,60 @@ export default function AdminContentManager({
               placeholder={type === "faq" ? "FAQ 답변을 입력하세요." : "내용을 입력하세요."}
             />
           </div>
+          {type === "notice" && (
+  <div
+    className="admin-form-field"
+    style={{
+      padding: "12px 14px",
+      border: "1px solid #e3e8f0",
+      borderRadius: 14,
+      background: "#f8faff",
+    }}
+  >
+    <label
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 9,
+        margin: 0,
+        cursor: "pointer",
+        fontWeight: 700,
+        fontSize: 14,
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={Boolean(form.isFeatured)}
+        onChange={(event) =>
+          setForm((prev) => ({
+            ...prev,
+            isFeatured: event.target.checked,
+          }))
+        }
+        style={{
+          width: 16,
+          height: 16,
+          margin: 0,
+          accentColor: "#173f86",
+          flexShrink: 0,
+        }}
+      />
 
+      <span>📌 대표 공지로 설정</span>
+    </label>
+
+    <p
+      className="sub"
+      style={{
+        margin: "5px 0 0 25px",
+        fontSize: 12,
+        lineHeight: 1.5,
+      }}
+    >
+      선택 시 공지사항 상단에 크게 노출됩니다.
+    </p>
+  </div>
+)}
           {config.imageField && (
             <div className="admin-form-field">
               <label>이미지</label>

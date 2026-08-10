@@ -783,6 +783,7 @@ export default function BoardDetail({
     <section className="panel">
       <button
         type="button"
+        className="soft"
         onClick={onBack}
         disabled={
           isSaving ||
@@ -797,101 +798,251 @@ export default function BoardDetail({
 
       <article className="card">
         {isEditing ? (
-          <form
-            className="form"
-            onSubmit={handleSaveEdit}
+         
+<form
+  onSubmit={handleSaveEdit}
+  style={{
+    maxWidth: 820,
+    margin: "0 auto",
+  }}
+>
+  {/* 수정 폼 헤더 */}
+  <div
+    style={{
+      marginBottom: 28,
+      paddingBottom: 20,
+      borderBottom: "1px solid #E8EDF5",
+    }}
+  >
+    <h2
+      style={{
+        margin: "0 0 6px",
+        fontSize: 24,
+      }}
+    >
+      Beauty Voice 수정
+    </h2>
+
+    <p
+      className="sub"
+      style={{ margin: 0 }}
+    >
+      작성한 내용을 수정할 수 있습니다.
+    </p>
+  </div>
+
+  {/* 카테고리 + 소속 매장 */}
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns:
+        "repeat(auto-fit, minmax(260px, 1fr))",
+      gap: 16,
+      marginBottom: 20,
+    }}
+  >
+    <div>
+      <label
+        htmlFor="edit-category"
+        style={{
+          display: "block",
+          marginBottom: 8,
+          fontWeight: 700,
+        }}
+      >
+        카테고리
+      </label>
+
+      <select
+        id="edit-category"
+        name="category"
+        value={editForm.category}
+        onChange={handleEditChange}
+        disabled={isSaving}
+        style={{
+          width: "100%",
+          height: 48,
+          padding: "0 14px",
+          border: "1px solid #DDE5F3",
+          borderRadius: 12,
+          background: "#F8FAFD",
+          fontSize: 15,
+        }}
+      >
+        {CATEGORIES.map(category => (
+          <option
+            key={category}
+            value={category}
           >
-            <label htmlFor="edit-category">
-              카테고리
-            </label>
-            <select
-              id="edit-category"
-              name="category"
-              value={editForm.category}
-              onChange={handleEditChange}
-              disabled={isSaving}
-            >
-              {CATEGORIES.map(category => (
-                <option
-                  key={category}
-                  value={category}
-                >
-                  {category}
-                </option>
-              ))}
-            </select>
+            {category}
+          </option>
+        ))}
+      </select>
+    </div>
 
-            <label htmlFor="edit-title">
-              제목
-            </label>
-            <input
-              id="edit-title"
-              name="title"
-              value={editForm.title}
-              onChange={handleEditChange}
-              maxLength={80}
-              disabled={isSaving}
-            />
+    <div>
+      <label
+        htmlFor="edit-store"
+        style={{
+          display: "block",
+          marginBottom: 8,
+          fontWeight: 700,
+        }}
+      >
+        소속 매장
+      </label>
 
-            <label htmlFor="edit-content">
-              내용
-            </label>
-            <textarea
-              id="edit-content"
-              name="content"
-              value={editForm.content}
-              onChange={handleEditChange}
-              rows={10}
-              maxLength={3000}
-              disabled={isSaving}
-            />
+      <select
+        id="edit-store"
+        name="store"
+        value={editForm.store}
+        onChange={handleEditChange}
+        disabled={isSaving}
+        style={{
+          width: "100%",
+          height: 48,
+          padding: "0 14px",
+          border: "1px solid #DDE5F3",
+          borderRadius: 12,
+          background: "#F8FAFD",
+          fontSize: 15,
+        }}
+      >
+        {STORES.map(store => (
+          <option
+            key={store}
+            value={store}
+          >
+            {store}
+          </option>
+        ))}
+      </select>
+    </div>
+  </div>
 
-            <label htmlFor="edit-store">
-              소속 매장
-            </label>
-            <select
-              id="edit-store"
-              name="store"
-              value={editForm.store}
-              onChange={handleEditChange}
-              disabled={isSaving}
-            >
-              {STORES.map(store => (
-                <option
-                  key={store}
-                  value={store}
-                >
-                  {store}
-                </option>
-              ))}
-            </select>
+  {/* 제목 */}
+  <div style={{ marginBottom: 20 }}>
+    <label
+      htmlFor="edit-title"
+      style={{
+        display: "block",
+        marginBottom: 8,
+        fontWeight: 700,
+      }}
+    >
+      제목
+    </label>
 
-            <div style={styles.editActions}>
-              <button
-                type="submit"
-                disabled={
-                  isSaving ||
-                  !editForm.title.trim() ||
-                  !editForm.content.trim()
-                }
-              >
-                <Check size={17} />
-                {isSaving
-                  ? "저장 중..."
-                  : "수정 저장"}
-              </button>
+    <input
+      id="edit-title"
+      name="title"
+      value={editForm.title}
+      onChange={handleEditChange}
+      maxLength={80}
+      disabled={isSaving}
+      style={{
+        width: "100%",
+        height: 48,
+        boxSizing: "border-box",
+        padding: "0 14px",
+        border: "1px solid #DDE5F3",
+        borderRadius: 12,
+        background: "#F8FAFD",
+        fontSize: 15,
+      }}
+    />
+  </div>
 
-              <button
-                type="button"
-                className="soft"
-                onClick={handleCancelEdit}
-                disabled={isSaving}
-              >
-                <X size={17} />
-                취소
-              </button>
-            </div>
-          </form>
+  {/* 내용 */}
+  <div style={{ marginBottom: 24 }}>
+    <label
+      htmlFor="edit-content"
+      style={{
+        display: "block",
+        marginBottom: 8,
+        fontWeight: 700,
+      }}
+    >
+      내용
+    </label>
+
+    <textarea
+      id="edit-content"
+      name="content"
+      value={editForm.content}
+      onChange={handleEditChange}
+      rows={8}
+      maxLength={3000}
+      disabled={isSaving}
+      style={{
+        width: "100%",
+        minHeight: 200,
+        boxSizing: "border-box",
+        padding: 14,
+        border: "1px solid #DDE5F3",
+        borderRadius: 12,
+        background: "#F8FAFD",
+        fontSize: 15,
+        lineHeight: 1.6,
+        resize: "vertical",
+      }}
+    />
+  </div>
+
+  {/* 하단 버튼 */}
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "flex-end",
+      alignItems: "center",
+      gap: 10,
+      paddingTop: 4,
+    }}
+  >
+    <button
+      type="button"
+      className="soft"
+      onClick={handleCancelEdit}
+      disabled={isSaving}
+      style={{
+        minWidth: 90,
+      }}
+    >
+      <X size={17} />
+      취소
+    </button>
+
+    <button
+      type="submit"
+      disabled={
+        isSaving ||
+        !editForm.title.trim() ||
+        !editForm.content.trim()
+      }
+style={{
+  minWidth: 120,
+  height: 44,
+  padding: "0 18px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 7,
+  background: "#163A73",
+  color: "#FFFFFF",
+  border: "1px solid #163A73",
+  borderRadius: 12,
+  fontWeight: 700,
+  cursor: isSaving ? "not-allowed" : "pointer",
+}}
+    >
+      <Check size={17} />
+
+      {isSaving
+        ? "저장 중..."
+        : "수정 저장"}
+    </button>
+  </div>
+</form>
         ) : (
           <>
             <div style={styles.postHeader}>
@@ -949,18 +1100,48 @@ export default function BoardDetail({
 
             <div style={styles.actions}>
               <button
-                type="button"
-                onClick={handleLike}
-                className={
-                  isLiked ? "active" : ""
-                }
-                disabled={isLikeSubmitting}
-                aria-pressed={isLiked}
-                style={styles.actionButton}
-              >
-                <ThumbsUp size={17} />
-                공감 {currentPost.likes ?? 0}
-              </button>
+  type="button"
+  onClick={handleLike}
+  disabled={isLikeSubmitting}
+  aria-pressed={isLiked}
+  style={{
+    ...styles.actionButton,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    padding: "9px 14px",
+    borderRadius: 999,
+    border: isLiked
+      ? "1px solid #163A73"
+      : "1px solid #DDE5F3",
+    background: isLiked
+      ? "#EEF4FF"
+      : "#FFFFFF",
+    color: "#163A73",
+    fontWeight: 700,
+    cursor: isLikeSubmitting
+      ? "not-allowed"
+      : "pointer",
+  }}
+>
+  <ThumbsUp
+    size={17}
+    fill={isLiked ? "currentColor" : "none"}
+  />
+
+  <span>
+    {isLiked ? "공감했어요" : "공감"}
+  </span>
+
+  <span
+    style={{
+      fontSize: 13,
+      opacity: 0.7,
+    }}
+  >
+    {currentPost.likes ?? 0}
+  </span>
+</button>
 
               {isOwner && (
                 <>
@@ -1166,11 +1347,12 @@ export default function BoardDetail({
                         }
                       >
                         <button
-                          type="button"
-                          disabled={
-                            isCommentSaving ||
-                            !editingCommentText.trim()
-                          }
+  type="button"
+  className="soft"
+  disabled={
+    isCommentSaving ||
+    !editingCommentText.trim()
+  }
                           onClick={() =>
                             handleSaveComment(
                               item.id
@@ -1229,12 +1411,13 @@ export default function BoardDetail({
             />
 
             <button
-              type="submit"
-              disabled={
-                isCommentSubmitting ||
-                !comment.trim()
-              }
-            >
+  type="submit"
+  className="soft"
+  disabled={
+    isCommentSubmitting ||
+    !comment.trim()
+  }
+>
               <Send size={17} />
               {isCommentSubmitting
                 ? "등록 중..."

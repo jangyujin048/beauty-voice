@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import supabase from "./api/supabase";
 import { normalizeVoice, loadVoices } from "./api/voiceApi";
-import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw } from "lucide-react";
+import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw, Trophy } from "lucide-react";
 import "./style.css";
 import AdminFilters from "./components/admin/AdminFilters";
 import DashboardStats from "./components/admin/DashboardStats";
@@ -18,6 +18,8 @@ import MyVoice from "./components/myvoice/MyVoice";
 import { AuthProvider } from "./contexts/AuthContext";
 import AdminBoardPosts from "./components/admin/AdminBoardPosts";
 import AdminContentManager from "./components/admin/AdminContentManager";
+import WeeklyChallenge from "./components/challenge/WeeklyChallenge";
+import AdminChallengeManager from "./components/admin/AdminChallengeManager";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -607,6 +609,14 @@ async function checkMyReplies(e) {
   <span>My Voice</span>
 </button>
 
+<button
+  onClick={() => setTab("challenge")}
+  className={tab === "challenge" ? "active" : ""}
+>
+  <Trophy size={18} />
+  <span>Beauty Mission</span>
+</button>
+
         <button onClick={() => setTab("thanks")} className={tab === "thanks" ? "active" : ""}><Heart size={18}/> Thanks</button>
         <button onClick={() => setTab("faq")} className={tab === "faq" ? "active" : ""}><BookOpen size={18}/> FAQ</button>
         <button onClick={() => setTab("insight")} className={tab === "insight" ? "active" : ""}><BookOpen size={18}/> BC 인사이트</button>
@@ -646,83 +656,326 @@ async function checkMyReplies(e) {
   />
 </div>
 
-            <section className="grid">
-              <div className="card">
-                <h3>📢 최신 공지</h3>
-                {latestNotices.length === 0 && <p>등록된 공지가 없습니다.</p>}
-                {latestNotices.map(n => (
-                  <button
-                    key={n.id}
-                    className="soft"
-                    onClick={() => {
-                      setSelectedNotice(n);
-                      setTab("notice");
-                    }}
-                    style={{ width: "100%", justifyContent: "space-between", marginTop: 10, textAlign: "left" }}
-                  >
-                    <span>{n.title}</span>
-                    <small>{dateLabel(n.created_at)}</small>
-                  </button>
-                ))}
-              </div>
+            <section
+  className="grid"
+  style={{
+    alignItems: "stretch",
+    marginTop: 24,
+  }}
+>
+  <div
+  className="card"
+  style={{
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 260,
+    padding: 22,
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      marginBottom: 16,
+    }}
+  >
+    <h3
+      style={{
+        margin: 0,
+      }}
+    >
+      📢 최신 공지
+    </h3>
 
-              <div className="card">
-                <h3>📊 최신 BC 인사이트</h3>
-                {!latestInsight ? (
-                  <p>등록된 BC 인사이트가 없습니다.</p>
-                ) : (
-                  <button
-                    className="soft"
-                    onClick={() => {
-                      setSelectedInsight(latestInsight);
-                      setTab("insight");
-                    }}
-                    style={{ width: "100%", justifyContent: "space-between", marginTop: 10, textAlign: "left" }}
-                  >
-                    <span>{latestInsight.title}</span>
-                    <small>{latestInsight.month}</small>
-                  </button>
-                )}
-              </div>
+    <button
+      type="button"
+      className="soft"
+      onClick={() =>
+        setTab("notice")
+      }
+      style={{
+        padding: "7px 10px",
+        fontSize: 12,
+      }}
+    >
+      전체보기
+    </button>
+  </div>
 
-              <div className="card">
-                <h3>❤️ Thanks TOP3</h3>
-                {topThanks.length === 0 && <p>아직 등록된 Thanks가 없습니다.</p>}
-                {topThanks.map(item => (
-                  <div key={item.id} style={{ marginTop: 10 }}>
-                    <b>{item.receiver}</b>
-                    <p className="sub" style={{ margin: "4px 0" }}>{item.message}</p>
-                    <small>❤️ {item.likes || 0}</small>
-                  </div>
-                ))}
-              </div>
-            </section>
+  {latestNotices.length === 0 ? (
+    <div
+      className="empty"
+      style={{
+        flex: 1,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      등록된 공지가 없습니다.
+    </div>
+  ) : (
+    latestNotices
+      .slice(0, 1)
+      .map(n => (
+        <button
+          key={n.id}
+          type="button"
+          onClick={() => {
+            setSelectedNotice(n);
+            setTab("notice");
+          }}
+          style={{
+            flex: 1,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            padding: 18,
+            border:
+              "1px solid #e2e8f2",
+            borderRadius: 18,
+            background: "#f8faff",
+            color: "inherit",
+            textAlign: "left",
+            cursor: "pointer",
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+            }}
+          >
+            <span
+              style={{
+                display: "inline-block",
+                marginBottom: 10,
+                padding: "5px 9px",
+                borderRadius: 999,
+                background: "#e8eef9",
+                color: "#0e2d69",
+                fontSize: 11,
+                fontWeight: 800,
+              }}
+            >
+              NOTICE
+            </span>
 
-            <section className="storeGrid">
-              <div className="storeCard">
-                <b>{voices.length}</b>
-                <span>전체 Voice</span>
-              </div>
-              <div className="storeCard">
-                <b>{voices.filter(v => v.status === "답변완료").length}</b>
-                <span>답변완료</span>
-              </div>
-              <div className="storeCard">
-                <b>{voices.filter(v => v.status !== "답변완료").length}</b>
-                <span>미답변</span>
-              </div>
-            </section>
+            <h4
+              style={{
+                margin: "0 0 10px",
+                fontSize: 17,
+                lineHeight: 1.45,
+              }}
+            >
+              {n.title}
+            </h4>
 
-            <section className="storeGrid">
-              {storeStats.map(item => (
-                <div className="storeCard" key={item.store}>
-                  <b>{item.count}</b>
-                  <span>{item.store}</span>
-                </div>
-              ))}
-            </section>
+            <p
+              className="sub"
+              style={{
+                margin: 0,
+                lineHeight: 1.6,
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient:
+                  "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {n.content ||
+                "공지 내용을 확인해보세요."}
+            </p>
+          </div>
 
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              justifyContent:
+                "space-between",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 18,
+              fontSize: 12,
+              color: "#667085",
+            }}
+          >
+            <span>
+              {dateLabel(
+                n.created_at
+              )}
+            </span>
 
+            <strong
+              style={{
+                color: "#0e2d69",
+              }}
+            >
+              자세히 보기 →
+            </strong>
+          </div>
+        </button>
+      ))
+  )}
+</div>
+
+  <div
+    className="card"
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 260,
+      padding: 22,
+    }}
+  >
+    <h3
+      style={{
+        marginBottom: 14,
+      }}
+    >
+      🏆 Beauty Mission
+    </h3>
+
+    <div
+      style={{
+        flex: 1,
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          marginBottom: 8,
+          fontSize: 17,
+          fontWeight: 800,
+        }}
+      >
+        지금 참여할 수 있는 미션
+      </p>
+
+      <p
+        className="sub"
+        style={{
+          margin: 0,
+          lineHeight: 1.7,
+          maxWidth: 280,
+        }}
+      >
+        함께 나누고 싶은 이야기에
+        가볍게 참여해보세요.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      className="soft"
+      onClick={() => setTab("challenge")}
+      style={{
+        width: "100%",
+        marginTop: 16,
+        justifyContent: "center",
+      }}
+    >
+      미션 보러가기
+    </button>
+  </div>
+
+  <div
+    className="card"
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      minHeight: 260,
+      padding: 22,
+    }}
+  >
+    <h3
+      style={{
+        marginBottom: 14,
+      }}
+    >
+      ❤️ Thanks TOP3
+    </h3>
+
+    <div
+      style={{
+        display: "grid",
+        gap: 10,
+        flex: 1,
+      }}
+    >
+      {topThanks.length === 0 ? (
+        <p className="sub">
+          아직 등록된 Thanks가 없습니다.
+        </p>
+      ) : (
+        topThanks.map((item, index) => (
+          <div
+            key={item.id}
+            style={{
+              paddingBottom: 10,
+              borderBottom:
+                index !== topThanks.length - 1
+                  ? "1px solid #ececec"
+                  : "none",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 10,
+                alignItems: "center",
+              }}
+            >
+              <b>
+                {index + 1}. {item.receiver}
+              </b>
+
+              <small
+                style={{
+                  flexShrink: 0,
+                }}
+              >
+                ❤️ {item.likes || 0}
+              </small>
+            </div>
+
+            <p
+              className="sub"
+              style={{
+                margin: "4px 0 0",
+                lineHeight: 1.45,
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }}
+            >
+              {item.message}
+            </p>
+          </div>
+        ))
+      )}
+    </div>
+
+    <button
+      type="button"
+      className="soft"
+      onClick={() => setTab("thanks")}
+      style={{
+        width: "100%",
+        marginTop: 16,
+        justifyContent: "center",
+      }}
+    >
+      전체 Thanks 보기
+    </button>
+  </div>
+</section>
           </>
         )}
 
@@ -744,6 +997,10 @@ async function checkMyReplies(e) {
     onBack={() => setTab("voice")}
   />
 )}
+
+	{tab === "challenge" && (
+	  <WeeklyChallenge />
+	)}
 
         {tab === "done" && (
           <section className="panel center">
@@ -796,24 +1053,37 @@ async function checkMyReplies(e) {
   />
 )}
 
-        {tab === "admin" && !adminLoggedIn && (
-          <section className="panel center">
-            <Lock size={50} />
-            <h2>운영진 로그인</h2>
-            <p className="sub">운영진만 접수 내용을 확인하고 답변할 수 있습니다.</p>
+{tab === "admin" && !adminLoggedIn && (
+  <section className="panel center adminLoginPanel">
+    <div className="adminLoginIcon">
+      <Lock size={28} />
+    </div>
 
-            <form onSubmit={loginAdmin} className="form" style={{ maxWidth: 360, margin: "0 auto" }}>
-              <label>비밀번호</label>
-              <input
-                type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
-                placeholder="운영진 비밀번호를 입력하세요"
-              />
-              <button type="submit">로그인</button>
-            </form>
-          </section>
-        )}
+    <h2>운영진 로그인</h2>
+
+    <p className="sub">
+      운영진만 접수 내용을 확인하고 답변할 수 있습니다.
+    </p>
+
+    <form
+      onSubmit={loginAdmin}
+      className="adminLoginForm"
+    >
+      <label>비밀번호</label>
+
+      <input
+        type="password"
+        value={adminPassword}
+        onChange={(e) => setAdminPassword(e.target.value)}
+        placeholder="운영진 비밀번호를 입력하세요"
+      />
+
+      <button type="submit">
+        로그인
+      </button>
+    </form>
+  </section>
+)}
 
         {tab === "admin" && adminLoggedIn && (
           <section className="panel">
@@ -858,9 +1128,24 @@ async function checkMyReplies(e) {
               >
                 인사이트관리
               </button>
+		<button
+		  onClick={() =>
+		    setAdminSubTab("challenge")
+		  }
+		  className={
+		    adminSubTab === "challenge"
+		      ? "active"
+		      : ""
+		  }
+		>
+		  챌린지관리
+		</button>
             </div>
 	    {adminSubTab === "board" && (
 		  <AdminBoardPosts />
+		)}
+		{adminSubTab === "challenge" && (
+		  <AdminChallengeManager />
 		)}
 
             {["notice", "faq", "insight"].includes(adminSubTab) && (

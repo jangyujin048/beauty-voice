@@ -17,7 +17,11 @@ export default function BoardHeader({
       }}
     >
       <div>
-        <h2 style={{ marginBottom: 8 }}>
+        <h2
+          style={{
+            marginBottom: 8,
+          }}
+        >
           {title}
         </h2>
 
@@ -29,6 +33,23 @@ export default function BoardHeader({
       <button
         type="button"
         onClick={onWrite}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 7,
+          padding: "10px 16px",
+          border: "1px solid #123a79",
+          borderRadius: 12,
+          background: "#123a79",
+          color: "#ffffff",
+          fontSize: 14,
+          fontWeight: 800,
+          cursor: "pointer",
+          boxShadow:
+            "0 4px 12px rgba(18, 58, 121, 0.14)",
+          whiteSpace: "nowrap",
+        }}
       >
         <Plus size={18} />
         글쓰기

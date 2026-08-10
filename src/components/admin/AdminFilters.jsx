@@ -11,7 +11,7 @@ export default function AdminFilters({
   onStatusChange,
   onReset
 }) {
-  const statuses = ["전체", "접수", "검토중", "처리중", "답변완료"];
+  const statuses = ["전체", "접수", "답변완료"];
 
   return (
     <div
