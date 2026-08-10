@@ -1,7 +1,15 @@
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-
-button, input, select, textarea { font: inherit; }
-button, select, textarea { font: inherit; }
+
+body {
+  margin: 0;
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #F7F9FC;
+  color: #1D2433;
+}
+
+button, input, select, textarea {
+  font: inherit;
+}
 .app { display: flex; min-height: 100vh; }
 .sidebar { width: 260px; background: #F8FAFF; border-right: 1px solid #DDE5F3; padding: 28px 18px; position: sticky; top: 0; height: 100vh; }
 .brand { display: flex; gap: 12px; align-items: center; margin-bottom: 32px; }
