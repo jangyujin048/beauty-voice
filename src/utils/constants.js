@@ -24,7 +24,7 @@ export const categories = [
 
 export const faqCategories = [
   "전체",
-  "교육",
+  "정보",
   "서비스",
   "시스템",
   "기타",
