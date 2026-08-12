@@ -44,14 +44,11 @@ function formatDate(value) {
     return value;
   }
 
-  return date.toLocaleDateString(
-    "ko-KR"
-  );
+  return date.toLocaleDateString("ko-KR");
 }
 
 export default function AdminChallengeManager() {
-  const [challenges, setChallenges] =
-    useState([]);
+  const [challenges, setChallenges] = useState([]);
 
   const [isLoading, setIsLoading] =
     useState(true);
@@ -160,44 +157,43 @@ export default function AdminChallengeManager() {
     setIsFormOpen(true);
   };
 
-  const openEditForm =
-    challenge => {
-      setEditingChallengeId(
-        challenge.id
-      );
+  const openEditForm = (challenge) => {
+    setEditingChallengeId(
+      challenge.id
+    );
 
-      setForm({
-        title:
-          challenge.title || "",
+    setForm({
+      title:
+        challenge.title || "",
 
-        description:
-          challenge.description || "",
+      description:
+        challenge.description || "",
 
-        prompt:
-          challenge.prompt || "",
+      prompt:
+        challenge.prompt || "",
 
-        startDate:
-          challenge.start_date || "",
+      startDate:
+        challenge.start_date || "",
 
-        endDate:
-          challenge.end_date || "",
+      endDate:
+        challenge.end_date || "",
 
-        status:
-          challenge.status ||
-          "active",
-      });
+      status:
+        challenge.status ||
+        "active",
+    });
 
-      setIsFormOpen(true);
-    };
+    setIsFormOpen(true);
+  };
 
   const handleFormChange =
-    event => {
+    (event) => {
       const {
         name,
         value,
       } = event.target;
 
-      setForm(previous => ({
+      setForm((previous) => ({
         ...previous,
         [name]: value,
       }));
@@ -242,7 +238,7 @@ export default function AdminChallengeManager() {
   };
 
   const handleSubmit =
-    async event => {
+    async (event) => {
       event.preventDefault();
 
       if (!validateForm()) {
@@ -335,7 +331,7 @@ export default function AdminChallengeManager() {
     };
 
   const handleCloseChallenge =
-    async challenge => {
+    async (challenge) => {
       if (!isAdmin) {
         alert(
           "운영진 계정만 사용할 수 있습니다."
@@ -379,7 +375,7 @@ export default function AdminChallengeManager() {
     };
 
   const handleReopenChallenge =
-    async challenge => {
+    async (challenge) => {
       if (!isAdmin) {
         alert(
           "운영진 계정만 사용할 수 있습니다."
@@ -423,7 +419,7 @@ export default function AdminChallengeManager() {
     };
 
   const handleDeleteChallenge =
-    async challenge => {
+    async (challenge) => {
       if (!isAdmin) {
         alert(
           "운영진 계정만 사용할 수 있습니다."
@@ -469,14 +465,33 @@ export default function AdminChallengeManager() {
   if (isCheckingAdmin) {
     return (
       <div className="card">
-        운영진 계정 권한을
-        확인하는 중...
+        운영진 계정 권한을 확인하는 중...
       </div>
     );
   }
 
+  const fieldStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid #DDE5F3",
+    borderRadius: 12,
+    background: "#F9FBFF",
+    color: "#1F2937",
+    outline: "none",
+    fontSize: 14,
+  };
+
+  const labelStyle = {
+    display: "block",
+    marginBottom: 8,
+    color: "#1F2937",
+    fontSize: 14,
+    fontWeight: 800,
+  };
+
   return (
     <div>
+      {/* 페이지 헤더 */}
       <div
         style={{
           display: "flex",
@@ -489,17 +504,39 @@ export default function AdminChallengeManager() {
         }}
       >
         <div>
-          <h3
+          <div
             style={{
-              marginBottom: 6,
+              color: "#43679B",
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: 1.2,
+              marginBottom: 8,
+            }}
+          >
+            CONTENT MANAGEMENT
+          </div>
+
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 28,
+              fontWeight: 800,
+              color: "#1F2937",
             }}
           >
             주간 챌린지 관리
-          </h3>
+          </h2>
 
-          <p className="sub">
-            챌린지를 등록하고 진행
-            상태 및 기간을 관리합니다.
+          <p
+            className="sub"
+            style={{
+              marginTop: 8,
+              marginBottom: 0,
+            }}
+          >
+            구성원이 가볍게 참여할 수 있는
+            미션을 등록하고 운영 상태를
+            관리합니다.
           </p>
         </div>
 
@@ -524,26 +561,34 @@ export default function AdminChallengeManager() {
             새로고침
           </button>
 
-<button
-  type="button"
-  className="btn-primary"
-  onClick={openCreateForm}
-  disabled={!isAdmin}
->
-  <Plus size={17} />
-  새 미션
-</button>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={openCreateForm}
+            disabled={!isAdmin}
+          >
+            <Plus size={17} />
+            새 챌린지
+          </button>
         </div>
       </div>
 
+      {/* 권한 안내 */}
       {!isAdmin && (
         <div
           className="card"
           style={{
             marginBottom: 20,
+            padding: 20,
+            borderColor: "#F1D8A8",
+            background: "#FFFDF7",
           }}
         >
-          <strong>
+          <strong
+            style={{
+              color: "#7A5412",
+            }}
+          >
             운영진 계정 확인 필요
           </strong>
 
@@ -554,43 +599,94 @@ export default function AdminChallengeManager() {
               marginBottom: 0,
             }}
           >
-            현재 로그인한 Google
-            계정은 admin_users에
-            등록되어 있지 않습니다.
-            기존 운영진 비밀번호로
-            페이지에 들어왔더라도
-            챌린지 등록·수정은 할 수
-            없습니다.
+            현재 로그인한 Google 계정은
+            admin_users에 등록되어 있지
+            않습니다. 기존 운영진
+            비밀번호로 페이지에
+            들어왔더라도 챌린지
+            등록·수정은 할 수 없습니다.
           </p>
         </div>
       )}
 
+      {/* 등록 / 수정 폼 */}
       {isFormOpen && (
         <form
-          className="card form"
           onSubmit={
             handleSubmit
           }
           style={{
-            marginBottom: 24,
+            marginBottom: 28,
+            border:
+              "1px solid #DDE5F3",
+            borderRadius: 20,
+            background: "#FFFFFF",
+            overflow: "hidden",
+            boxShadow:
+              "0 10px 30px rgba(22, 58, 115, 0.05)",
           }}
         >
+          {/* 폼 헤더 */}
           <div
             style={{
               display: "flex",
               justifyContent:
                 "space-between",
-              alignItems:
-                "center",
-              gap: 12,
-              marginBottom: 6,
+              alignItems: "flex-start",
+              gap: 16,
+              padding: "24px 26px",
+              borderBottom:
+                "1px solid #EDF1F7",
+              background:
+                "linear-gradient(135deg, #F8FBFF 0%, #F2F6FC 100%)",
             }}
           >
-            <h3>
-              {editingChallengeId
-                ? "챌린지 수정"
-                : "새 챌린지 등록"}
-            </h3>
+            <div>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "5px 9px",
+                  marginBottom: 10,
+                  borderRadius: 999,
+                  background: "#EAF1FB",
+                  color: "#163A73",
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: 0.6,
+                }}
+              >
+                {editingChallengeId
+                  ? "CHALLENGE EDIT"
+                  : "NEW CHALLENGE"}
+              </div>
+
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: 21,
+                  fontWeight: 800,
+                  color: "#1F2937",
+                }}
+              >
+                {editingChallengeId
+                  ? "챌린지 수정"
+                  : "새 챌린지 등록"}
+              </h3>
+
+              <p
+                className="sub"
+                style={{
+                  margin:
+                    "7px 0 0",
+                  fontSize: 13,
+                }}
+              >
+                구성원이 부담 없이 참여할 수
+                있도록 짧고 명확한 미션을
+                만들어주세요.
+              </p>
+            </div>
 
             <button
               type="button"
@@ -601,164 +697,594 @@ export default function AdminChallengeManager() {
               disabled={
                 isSubmitting
               }
+              style={{
+                minWidth: 40,
+                padding:
+                  "9px 11px",
+              }}
             >
               <X size={16} />
               닫기
             </button>
           </div>
 
-          <label htmlFor="challenge-title">
-            제목
-          </label>
-
-          <input
-            id="challenge-title"
-            name="title"
-            value={form.title}
-            onChange={
-              handleFormChange
-            }
-            placeholder="예: 칭찬은 가까이"
-            maxLength={80}
-            disabled={
-              isSubmitting
-            }
-          />
-
-          <label htmlFor="challenge-description">
-            카드 설명
-          </label>
-
-          <textarea
-            id="challenge-description"
-            name="description"
-            value={
-              form.description
-            }
-            onChange={
-              handleFormChange
-            }
-            rows={4}
-            placeholder="챌린지 카드에 표시할 설명을 입력해주세요."
-            disabled={
-              isSubmitting
-            }
-          />
-
-          <label htmlFor="challenge-prompt">
-            참여 질문 / 안내
-          </label>
-
-          <textarea
-            id="challenge-prompt"
-            name="prompt"
-            value={form.prompt}
-            onChange={
-              handleFormChange
-            }
-            rows={4}
-            placeholder="예: 이번 주 나에게 힘이 되어준 동료는 누구였나요?"
-            disabled={
-              isSubmitting
-            }
-          />
-
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(2, minmax(0, 1fr))",
-              gap: 12,
+              padding: 26,
             }}
           >
-            <div>
-              <label htmlFor="challenge-start-date">
-                시작일
-              </label>
+            {/* 기본 정보 */}
+            <div
+              style={{
+                marginBottom: 28,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 18,
+                }}
+              >
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 9,
+                    background: "#EAF1FB",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 15,
+                  }}
+                >
+                  ✨
+                </div>
 
-              <input
-                id="challenge-start-date"
-                type="date"
-                name="startDate"
-                value={
-                  form.startDate
-                }
+                <div>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 15,
+                    }}
+                  >
+                    기본 정보
+                  </strong>
+
+                  <span
+                    className="sub"
+                    style={{
+                      fontSize: 12,
+                    }}
+                  >
+                    챌린지 카드에 보여질
+                    내용을 입력해주세요.
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginBottom: 18,
+                }}
+              >
+                <label
+                  htmlFor="challenge-title"
+                  style={labelStyle}
+                >
+                  챌린지 제목
+                </label>
+
+                <input
+                  id="challenge-title"
+                  name="title"
+                  value={form.title}
+                  onChange={
+                    handleFormChange
+                  }
+                  placeholder="예: 칭찬은 가까이"
+                  maxLength={80}
+                  disabled={
+                    isSubmitting
+                  }
+                  style={{
+                    ...fieldStyle,
+                    height: 48,
+                    padding:
+                      "0 14px",
+                  }}
+                />
+
+                <div
+                  style={{
+                    marginTop: 6,
+                    textAlign: "right",
+                    color: "#98A2B3",
+                    fontSize: 11,
+                  }}
+                >
+                  {form.title.length} / 80
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="challenge-description"
+                  style={labelStyle}
+                >
+                  카드 설명
+                </label>
+
+                <textarea
+                  id="challenge-description"
+                  name="description"
+                  value={
+                    form.description
+                  }
+                  onChange={
+                    handleFormChange
+                  }
+                  rows={3}
+                  placeholder="챌린지 카드에 표시할 설명을 입력해주세요."
+                  disabled={
+                    isSubmitting
+                  }
+                  style={{
+                    ...fieldStyle,
+                    minHeight: 100,
+                    padding: 14,
+                    resize: "vertical",
+                    lineHeight: 1.6,
+                  }}
+                />
+
+                <p
+                  className="sub"
+                  style={{
+                    margin:
+                      "6px 0 0",
+                    fontSize: 11,
+                  }}
+                >
+                  홈과 챌린지 목록 카드에서
+                  제목 아래에 노출됩니다.
+                </p>
+              </div>
+            </div>
+
+            {/* 참여 질문 */}
+            <div
+              style={{
+                padding: 20,
+                marginBottom: 28,
+                border:
+                  "1px solid #D9E6F5",
+                borderRadius: 16,
+                background: "#F7FAFE",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 14,
+                }}
+              >
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: "#163A73",
+                    color: "#FFFFFF",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 16,
+                  }}
+                >
+                  💬
+                </div>
+
+                <div>
+                  <strong
+                    style={{
+                      display: "block",
+                      color: "#163A73",
+                      fontSize: 15,
+                    }}
+                  >
+                    참여 질문
+                  </strong>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 2,
+                      color: "#667085",
+                      fontSize: 12,
+                    }}
+                  >
+                    구성원이 댓글로 답하게 될
+                    핵심 질문입니다.
+                  </span>
+                </div>
+              </div>
+
+              <textarea
+                id="challenge-prompt"
+                name="prompt"
+                value={form.prompt}
                 onChange={
                   handleFormChange
                 }
+                rows={3}
+                placeholder="예: 이번 주 나에게 힘이 되어준 동료는 누구였나요?"
                 disabled={
                   isSubmitting
                 }
+                style={{
+                  ...fieldStyle,
+                  minHeight: 96,
+                  padding: 14,
+                  background: "#FFFFFF",
+                  resize: "vertical",
+                  lineHeight: 1.6,
+                }}
               />
             </div>
 
-            <div>
-              <label htmlFor="challenge-end-date">
-                종료일
+            {/* 운영 설정 */}
+            <div
+              style={{
+                marginBottom: 26,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 18,
+                }}
+              >
+                <div
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 9,
+                    background: "#EEF3F8",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 14,
+                  }}
+                >
+                  📅
+                </div>
+
+                <div>
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 15,
+                    }}
+                  >
+                    운영 설정
+                  </strong>
+
+                  <span
+                    className="sub"
+                    style={{
+                      fontSize: 12,
+                    }}
+                  >
+                    챌린지 기간과 상태를
+                    설정해주세요.
+                  </span>
+                </div>
+              </div>
+
+              {/* 날짜 */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(2, minmax(0, 1fr))",
+                  gap: 14,
+                  marginBottom: 20,
+                }}
+              >
+                <div>
+                  <label
+                    htmlFor="challenge-start-date"
+                    style={labelStyle}
+                  >
+                    시작일
+                  </label>
+
+                  <input
+                    id="challenge-start-date"
+                    type="date"
+                    name="startDate"
+                    value={
+                      form.startDate
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    disabled={
+                      isSubmitting
+                    }
+                    style={{
+                      ...fieldStyle,
+                      height: 48,
+                      padding:
+                        "0 14px",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="challenge-end-date"
+                    style={labelStyle}
+                  >
+                    종료일
+                  </label>
+
+                  <input
+                    id="challenge-end-date"
+                    type="date"
+                    name="endDate"
+                    value={
+                      form.endDate
+                    }
+                    onChange={
+                      handleFormChange
+                    }
+                    disabled={
+                      isSubmitting
+                    }
+                    style={{
+                      ...fieldStyle,
+                      height: 48,
+                      padding:
+                        "0 14px",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* 상태 */}
+              <label
+                style={labelStyle}
+              >
+                공개 상태
               </label>
 
-              <input
-                id="challenge-end-date"
-                type="date"
-                name="endDate"
-                value={
-                  form.endDate
-                }
-                onChange={
-                  handleFormChange
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(2, minmax(0, 1fr))",
+                  gap: 12,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm(
+                      (previous) => ({
+                        ...previous,
+                        status: "active",
+                      })
+                    )
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  style={{
+                    padding:
+                      "15px 16px",
+                    border:
+                      form.status ===
+                      "active"
+                        ? "1.5px solid #163A73"
+                        : "1px solid #DDE5F3",
+                    borderRadius: 12,
+                    background:
+                      form.status ===
+                      "active"
+                        ? "#F0F5FC"
+                        : "#FFFFFF",
+                    color:
+                      form.status ===
+                      "active"
+                        ? "#163A73"
+                        : "#667085",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      marginBottom: 4,
+                    }}
+                  >
+                    ● 진행 중
+                  </strong>
+
+                  <span
+                    style={{
+                      fontSize: 11,
+                    }}
+                  >
+                    구성원에게 현재 챌린지로
+                    노출됩니다.
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm(
+                      (previous) => ({
+                        ...previous,
+                        status: "closed",
+                      })
+                    )
+                  }
+                  disabled={
+                    isSubmitting
+                  }
+                  style={{
+                    padding:
+                      "15px 16px",
+                    border:
+                      form.status ===
+                      "closed"
+                        ? "1.5px solid #667085"
+                        : "1px solid #DDE5F3",
+                    borderRadius: 12,
+                    background:
+                      form.status ===
+                      "closed"
+                        ? "#F5F6F7"
+                        : "#FFFFFF",
+                    color:
+                      form.status ===
+                      "closed"
+                        ? "#344054"
+                        : "#667085",
+                    textAlign: "left",
+                    cursor: "pointer",
+                  }}
+                >
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 14,
+                      marginBottom: 4,
+                    }}
+                  >
+                    ○ 종료
+                  </strong>
+
+                  <span
+                    style={{
+                      fontSize: 11,
+                    }}
+                  >
+                    지난 챌린지 영역으로
+                    이동합니다.
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* 하단 버튼 */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent:
+                  "flex-end",
+                gap: 10,
+                paddingTop: 20,
+                borderTop:
+                  "1px solid #EDF1F7",
+              }}
+            >
+              <button
+                type="button"
+                className="soft"
+                onClick={
+                  resetForm
                 }
                 disabled={
                   isSubmitting
                 }
-              />
+                style={{
+                  padding:
+                    "10px 18px",
+                }}
+              >
+                취소
+              </button>
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={
+                  isSubmitting ||
+                  !isAdmin
+                }
+                style={{
+                  padding:
+                    "10px 20px",
+                }}
+              >
+                <CheckCircle2
+                  size={17}
+                />
+
+                {isSubmitting
+                  ? "저장 중..."
+                  : editingChallengeId
+                    ? "수정 저장"
+                    : "챌린지 등록"}
+              </button>
             </div>
           </div>
-
-          <label htmlFor="challenge-status">
-            상태
-          </label>
-
-          <select
-            id="challenge-status"
-            name="status"
-            value={form.status}
-            onChange={
-              handleFormChange
-            }
-            disabled={
-              isSubmitting
-            }
-          >
-            <option value="active">
-              진행 중
-            </option>
-
-            <option value="closed">
-              종료
-            </option>
-          </select>
-
-          <button
-  type="submit"
-  className="btn-primary"
-  disabled={
-    isSubmitting ||
-    !isAdmin
-  }
->
-            <CheckCircle2
-              size={17}
-            />
-
-            {isSubmitting
-              ? "저장 중..."
-              : editingChallengeId
-                ? "수정 저장"
-                : "챌린지 등록"}
-          </button>
         </form>
       )}
 
+      {/* 목록 타이틀 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent:
+            "space-between",
+          marginBottom: 14,
+          marginTop: 8,
+        }}
+      >
+        <div>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: 18,
+            }}
+          >
+            등록된 챌린지
+          </h3>
+
+          <p
+            className="sub"
+            style={{
+              margin:
+                "5px 0 0",
+              fontSize: 12,
+            }}
+          >
+            진행 중인 챌린지와 지난
+            챌린지를 확인할 수 있습니다.
+          </p>
+        </div>
+
+        <span
+          className="sub"
+          style={{
+            fontSize: 12,
+          }}
+        >
+          총 {challenges.length}개
+        </span>
+      </div>
+
+      {/* 챌린지 목록 */}
       <div
         style={{
           display: "grid",
@@ -767,18 +1293,15 @@ export default function AdminChallengeManager() {
       >
         {isLoading ? (
           <div className="card">
-            챌린지를 불러오는
-            중...
+            챌린지를 불러오는 중...
           </div>
-        ) : challenges.length ===
-          0 ? (
+        ) : challenges.length === 0 ? (
           <div className="empty">
-            등록된 챌린지가
-            없습니다.
+            등록된 챌린지가 없습니다.
           </div>
         ) : (
           challenges.map(
-            challenge => {
+            (challenge) => {
               const isProcessing =
                 processingChallengeId ===
                 challenge.id;
@@ -792,7 +1315,22 @@ export default function AdminChallengeManager() {
                   key={
                     challenge.id
                   }
-                  className="card"
+                  style={{
+                    padding: 22,
+                    border:
+                      isActive
+                        ? "1px solid #C9D9EE"
+                        : "1px solid #E4E7EC",
+                    borderRadius: 16,
+                    background:
+                      isActive
+                        ? "#FFFFFF"
+                        : "#FCFCFD",
+                    boxShadow:
+                      isActive
+                        ? "0 6px 20px rgba(22, 58, 115, 0.04)"
+                        : "none",
+                  }}
                 >
                   <div
                     style={{
@@ -802,12 +1340,16 @@ export default function AdminChallengeManager() {
                         "space-between",
                       alignItems:
                         "flex-start",
-                      gap: 16,
-                      marginBottom:
-                        12,
+                      gap: 18,
                     }}
                   >
-                    <div>
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      {/* 상태 */}
                       <div
                         style={{
                           display:
@@ -817,53 +1359,62 @@ export default function AdminChallengeManager() {
                           gap: 8,
                           flexWrap:
                             "wrap",
-                          marginBottom:
-                            8,
+                          marginBottom: 10,
                         }}
                       >
                         <span
                           style={{
                             padding:
-                              "5px 9px",
+                              "5px 10px",
                             borderRadius:
                               999,
                             background:
                               isActive
-                                ? "#eaf7ef"
-                                : "#f1f1f1",
+                                ? "#EAF7EF"
+                                : "#F2F4F7",
                             color:
                               isActive
                                 ? "#247044"
-                                : "#666",
-                            fontSize:
-                              12,
-                            fontWeight:
-                              800,
+                                : "#667085",
+                            fontSize: 11,
+                            fontWeight: 800,
                           }}
                         >
                           {isActive
-                            ? "진행 중"
-                            : "종료"}
+                            ? "● 진행 중"
+                            : "○ 종료"}
                         </span>
 
                         <span
-                          className="sub"
                           style={{
-                            fontSize:
-                              12,
+                            padding:
+                              "5px 10px",
+                            borderRadius:
+                              999,
+                            background:
+                              "#F5F8FD",
+                            color:
+                              "#43679B",
+                            fontSize: 11,
+                            fontWeight: 700,
                           }}
                         >
-                          참여{" "}
+                          💬 참여{" "}
                           {challenge.participant_count ??
                             0}
                           명
                         </span>
                       </div>
 
+                      {/* 제목 */}
                       <h3
                         style={{
-                          marginBottom:
-                            8,
+                          margin:
+                            "0 0 8px",
+                          color:
+                            "#1F2937",
+                          fontSize: 18,
+                          fontWeight: 800,
                         }}
                       >
                         {
@@ -871,13 +1422,16 @@ export default function AdminChallengeManager() {
                         }
                       </h3>
 
+                      {/* 설명 */}
                       <p
                         className="sub"
                         style={{
                           whiteSpace:
                             "pre-line",
-                          marginBottom:
-                            8,
+                          margin:
+                            "0 0 14px",
+                          lineHeight: 1.6,
+                          fontSize: 13,
                         }}
                       >
                         {
@@ -885,23 +1439,60 @@ export default function AdminChallengeManager() {
                         }
                       </p>
 
-                      <span
+                      {/* 참여 질문 */}
+                      {challenge.prompt && (
+                        <div
+                          style={{
+                            padding:
+                              "10px 12px",
+                            marginBottom: 14,
+                            borderRadius: 10,
+                            background:
+                              "#F7FAFE",
+                            color:
+                              "#43679B",
+                            fontSize: 12,
+                          }}
+                        >
+                          💬{" "}
+                          {
+                            challenge.prompt
+                          }
+                        </div>
+                      )}
+
+                      {/* 기간 */}
+                      <div
                         style={{
-                          fontSize:
-                            13,
+                          display:
+                            "flex",
+                          alignItems:
+                            "center",
+                          gap: 6,
+                          color:
+                            "#667085",
+                          fontSize: 12,
+                          fontWeight: 600,
                         }}
                       >
-                        {formatDate(
-                          challenge.start_date
-                        )}{" "}
-                        ~{" "}
-                        {formatDate(
-                          challenge.end_date
-                        )}
-                      </span>
+                        <span>
+                          📅
+                        </span>
+
+                        <span>
+                          {formatDate(
+                            challenge.start_date
+                          )}{" "}
+                          ~{" "}
+                          {formatDate(
+                            challenge.end_date
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
+                  {/* 관리 버튼 */}
                   <div
                     style={{
                       display:
@@ -909,6 +1500,10 @@ export default function AdminChallengeManager() {
                       gap: 8,
                       flexWrap:
                         "wrap",
+                      marginTop: 18,
+                      paddingTop: 16,
+                      borderTop:
+                        "1px solid #EDF1F7",
                     }}
                   >
                     <button
@@ -982,6 +1577,10 @@ export default function AdminChallengeManager() {
                         !isAdmin ||
                         isProcessing
                       }
+                      style={{
+                        color:
+                          "#B42318",
+                      }}
                     >
                       <Trash2
                         size={16}

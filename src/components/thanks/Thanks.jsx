@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 export default function Thanks({
   thanksForm,
@@ -9,19 +9,104 @@ export default function Thanks({
   likedThanksIds,
   dateLabel,
 }) {
-const [expandedIds, setExpandedIds] =
-  useState([]);
-const toggleExpanded = (id) => {
-  setExpandedIds((previous) =>
-    previous.includes(id)
-      ? previous.filter(
-          (itemId) => itemId !== id
-        )
-      : [...previous, id]
-  );
-};
+  const [expandedIds, setExpandedIds] = useState([]);
+
+  const toggleExpanded = (id) => {
+    setExpandedIds((previous) =>
+      previous.includes(id)
+        ? previous.filter((itemId) => itemId !== id)
+        : [...previous, id]
+    );
+  };
+
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+
+  const [openYears, setOpenYears] = useState([
+    currentYear,
+  ]);
+
+  const [openMonths, setOpenMonths] = useState([
+    `${currentYear}-${currentMonth}`,
+  ]);
+
+  const toggleYear = (year) => {
+    setOpenYears((previous) =>
+      previous.includes(year)
+        ? previous.filter((item) => item !== year)
+        : [...previous, year]
+    );
+  };
+
+  const toggleMonth = (year, month) => {
+    const key = `${year}-${month}`;
+
+    setOpenMonths((previous) =>
+      previous.includes(key)
+        ? previous.filter((item) => item !== key)
+        : [...previous, key]
+    );
+  };
+
+  const groupedThanks = useMemo(() => {
+    const groups = {};
+
+    [...thanksList]
+      .sort(
+        (a, b) =>
+          new Date(b.created_at) -
+          new Date(a.created_at)
+      )
+      .forEach((item) => {
+        const date = new Date(item.created_at);
+
+        if (Number.isNaN(date.getTime())) {
+          return;
+        }
+
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+
+        if (!groups[year]) {
+          groups[year] = {};
+        }
+
+        if (!groups[year][month]) {
+          groups[year][month] = [];
+        }
+
+        groups[year][month].push(item);
+      });
+
+    return Object.entries(groups)
+      .sort(
+        ([yearA], [yearB]) =>
+          Number(yearB) - Number(yearA)
+      )
+      .map(([year, months]) => ({
+        year: Number(year),
+
+        count: Object.values(months).reduce(
+          (total, items) =>
+            total + items.length,
+          0
+        ),
+
+        months: Object.entries(months)
+          .sort(
+            ([monthA], [monthB]) =>
+              Number(monthB) - Number(monthA)
+          )
+          .map(([month, items]) => ({
+            month: Number(month),
+            items,
+          })),
+      }));
+  }, [thanksList]);
+
   return (
-    <section className="panel">
+    <section>
       {/* 상단 타이틀 */}
       <div style={{ marginBottom: 24 }}>
         <h2
@@ -221,145 +306,363 @@ const toggleExpanded = (id) => {
       </div>
 
       {/* Thanks 목록 */}
-      <section className="grid">
+      <div>
         {thanksList.length === 0 && (
           <div className="empty">
             아직 등록된 Thanks가 없습니다.
           </div>
         )}
 
-        {thanksList.map((item) => {
-          const isLiked =
-            likedThanksIds.includes(item.id);
-
-const isExpanded =
-  expandedIds.includes(item.id);
-
-const isLongMessage =
-  item.message?.length > 120;
+        {groupedThanks.map((yearGroup) => {
+          const isYearOpen =
+            openYears.includes(yearGroup.year);
 
           return (
             <div
-              className="card"
-              key={item.id}
+              key={yearGroup.year}
               style={{
-                padding: 20,
-                display: "flex",
-                flexDirection: "column",
-                minHeight: 220,
+                marginBottom: 18,
               }}
             >
-              {/* 대상 */}
-              <div
+              {/* 연도 아코디언 */}
+              <button
+                type="button"
+                onClick={() =>
+                  toggleYear(yearGroup.year)
+                }
                 style={{
+                  width: "100%",
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                  marginBottom: 12,
+                  justifyContent: "space-between",
+                  padding: "16px 18px",
+                  border: "1px solid #DDE5F3",
+                  borderRadius: 14,
+                  background: "#F5F8FD",
+                  color: "#163A73",
+                  fontSize: 17,
+                  fontWeight: 800,
+                  cursor: "pointer",
                 }}
               >
-                <span
-                  style={{
-                    fontSize: 18,
-                  }}
-                >
-                  ❤️
+                <span>
+                  {isYearOpen ? "▼" : "▶"}{" "}
+                  {yearGroup.year}년
                 </span>
 
-                <h3
+                <span
                   style={{
-                    margin: 0,
-                    fontSize: 17,
-                  }}
-                >
-                  {item.receiver}
-                </h3>
-              </div>
-
-              {/* 내용 */}
-<div>
-  <p
-    style={{
-      margin: 0,
-      lineHeight: 1.6,
-      fontSize: 14,
-      ...(isExpanded
-        ? {}
-        : {
-            display: "-webkit-box",
-            WebkitLineClamp: 5,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }),
-    }}
-  >
-    {item.message}
-  </p>
-
-  {isLongMessage && (
-    <button
-      type="button"
-      onClick={() =>
-        toggleExpanded(item.id)
-      }
-      style={{
-        marginTop: 8,
-        padding: 0,
-        border: 0,
-        background: "transparent",
-        color: "#163A73",
-        fontSize: 13,
-        fontWeight: 700,
-        cursor: "pointer",
-      }}
-    >
-      {isExpanded
-        ? "접기"
-        : "더보기"}
-    </button>
-  )}
-</div>
-
-              {/* 하단 */}
-              <div
-                style={{
-                  marginTop: "auto",
-                  paddingTop: 18,
-                }}
-              >
-                <small
-                  style={{
-                    display: "block",
-                    color: "#667085",
-                    marginBottom: 10,
-                  }}
-                >
-                  {dateLabel(item.created_at)}
-                </small>
-
-                <button
-                  type="button"
-                  className="soft"
-                  onClick={() =>
-                    likeThanks(item)
-                  }
-                  disabled={isLiked}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 10,
                     fontSize: 13,
+                    color: "#667085",
                     fontWeight: 700,
                   }}
                 >
-                  {isLiked
-                    ? `❤️ 공감완료 ${item.likes || 0}`
-                    : `❤️ 공감 ${item.likes || 0}`}
-                </button>
-              </div>
+                  {yearGroup.count}개
+                </span>
+              </button>
+
+              {isYearOpen && (
+                <div
+                  style={{
+                    marginTop: 12,
+                  }}
+                >
+                  {yearGroup.months.map(
+                    (monthGroup) => {
+                      const monthKey =
+                        `${yearGroup.year}-${monthGroup.month}`;
+
+                      const isMonthOpen =
+                        openMonths.includes(monthKey);
+
+                      return (
+                        <div
+                          key={monthKey}
+                          style={{
+                            marginBottom: 18,
+                          }}
+                        >
+                          {/* 월 아코디언 */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleMonth(
+                                yearGroup.year,
+                                monthGroup.month
+                              )
+                            }
+                            style={{
+                              width: "100%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent:
+                                "space-between",
+                              padding:
+                                "10px 4px 10px 2px",
+                              border: 0,
+                              borderBottom:
+                                "1px solid #E5EAF2",
+                              background:
+                                "transparent",
+                              color: "#1F2937",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 15,
+                                  fontWeight: 800,
+                                  color: "#163A73",
+                                }}
+                              >
+                                {isMonthOpen
+                                  ? "▼"
+                                  : "▶"}{" "}
+                                {
+                                  monthGroup.month
+                                }
+                                월의 Thanks
+                              </span>
+
+                              {yearGroup.year ===
+                                currentYear &&
+                                monthGroup.month ===
+                                  currentMonth && (
+                                  <span
+                                    style={{
+                                      padding:
+                                        "3px 8px",
+                                      borderRadius: 999,
+                                      background:
+                                        "#EAF1FB",
+                                      color:
+                                        "#163A73",
+                                      fontSize: 10,
+                                      fontWeight: 800,
+                                      letterSpacing: 0.4,
+                                    }}
+                                  >
+                                    NOW
+                                  </span>
+                                )}
+                            </div>
+
+                            <span
+                              style={{
+                                fontSize: 12,
+                                color: "#98A2B3",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {
+                                monthGroup.items
+                                  .length
+                              }
+                              개
+                            </span>
+                          </button>
+
+                          {isMonthOpen && (
+                            <section
+                              className="grid"
+                              style={{
+                                marginTop: 16,
+                              }}
+                            >
+                              {monthGroup.items.map(
+                                (item) => {
+                                  const isLiked =
+                                    likedThanksIds.includes(
+                                      item.id
+                                    );
+
+                                  const isExpanded =
+                                    expandedIds.includes(
+                                      item.id
+                                    );
+
+                                  const isLongMessage =
+                                    item.message
+                                      ?.length > 120;
+
+                                  return (
+                                    <div
+                                      className="card"
+                                      key={item.id}
+                                      style={{
+                                        padding: 20,
+                                        display:
+                                          "flex",
+                                        flexDirection:
+                                          "column",
+                                        minHeight: 220,
+                                      }}
+                                    >
+                                      {/* 대상 */}
+                                      <div
+                                        style={{
+                                          display:
+                                            "flex",
+                                          alignItems:
+                                            "center",
+                                          gap: 8,
+                                          marginBottom: 12,
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            fontSize: 18,
+                                          }}
+                                        >
+                                          ❤️
+                                        </span>
+
+                                        <h3
+                                          style={{
+                                            margin: 0,
+                                            fontSize: 17,
+                                          }}
+                                        >
+                                          {
+                                            item.receiver
+                                          }
+                                        </h3>
+                                      </div>
+
+                                      {/* 내용 */}
+                                      <p
+                                        style={{
+                                          margin: 0,
+                                          lineHeight: 1.7,
+                                          whiteSpace:
+                                            "pre-wrap",
+                                          display:
+                                            isLongMessage &&
+                                            !isExpanded
+                                              ? "-webkit-box"
+                                              : "block",
+                                          WebkitLineClamp:
+                                            isLongMessage &&
+                                            !isExpanded
+                                              ? 4
+                                              : "unset",
+                                          WebkitBoxOrient:
+                                            "vertical",
+                                          overflow:
+                                            isLongMessage &&
+                                            !isExpanded
+                                              ? "hidden"
+                                              : "visible",
+                                        }}
+                                      >
+                                        {item.message}
+                                      </p>
+
+                                      {isLongMessage && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            toggleExpanded(
+                                              item.id
+                                            )
+                                          }
+                                          style={{
+                                            marginTop: 8,
+                                            padding: 0,
+                                            border: 0,
+                                            background:
+                                              "transparent",
+                                            color:
+                                              "#163A73",
+                                            fontSize: 13,
+                                            fontWeight: 700,
+                                            cursor:
+                                              "pointer",
+                                            alignSelf:
+                                              "flex-start",
+                                          }}
+                                        >
+                                          {isExpanded
+                                            ? "접기"
+                                            : "더보기"}
+                                        </button>
+                                      )}
+
+                                      {/* 하단 */}
+                                      <div
+                                        style={{
+                                          marginTop:
+                                            "auto",
+                                          paddingTop: 18,
+                                        }}
+                                      >
+                                        <small
+                                          style={{
+                                            display:
+                                              "block",
+                                            color:
+                                              "#667085",
+                                            marginBottom: 10,
+                                          }}
+                                        >
+                                          {dateLabel(
+                                            item.created_at
+                                          )}
+                                        </small>
+
+                                        <button
+                                          type="button"
+                                          className="soft"
+                                          onClick={() =>
+                                            likeThanks(
+                                              item
+                                            )
+                                          }
+                                          disabled={
+                                            isLiked
+                                          }
+                                          style={{
+                                            padding:
+                                              "8px 12px",
+                                            borderRadius: 10,
+                                            fontSize: 13,
+                                            fontWeight: 700,
+                                          }}
+                                        >
+                                          {isLiked
+                                            ? `❤️ 공감완료 ${
+                                                item.likes ||
+                                                0
+                                              }`
+                                            : `❤️ 공감 ${
+                                                item.likes ||
+                                                0
+                                              }`}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              )}
+                            </section>
+                          )}
+                        </div>
+                      );
+                    }
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
-      </section>
+      </div>
     </section>
   );
 }
