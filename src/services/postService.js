@@ -112,6 +112,33 @@ export async function updatePostStatus(
 /**
  * 게시글 수정
  */
+/**
+ * 게시글 공감 토글
+ * DB 함수가 현재 사용자의 공감 여부를 기준으로
+ * likes 값을 안전하게 증가/감소시킵니다.
+ */
+export async function togglePostLike(postId) {
+  if (!postId) {
+    throw new Error("게시글 정보를 확인할 수 없습니다.");
+  }
+
+  const { data, error } = await supabase.rpc(
+    "toggle_beauty_voice_post_like",
+    {
+      p_post_id: postId,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/**
+ * 게시글 수정
+ */
 export async function updatePost(
   postId,
   updateData

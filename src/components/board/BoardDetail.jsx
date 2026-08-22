@@ -27,6 +27,7 @@ import {
 } from "../../services/commentService";
 import {
   deletePost,
+  togglePostLike,
   updatePost,
 } from "../../services/postService";
 
@@ -447,27 +448,28 @@ export default function BoardDetail({
       return;
     }
 
-    const nextIsLiked = !isLiked;
     const previousLikeCount =
       currentPost.likes ?? 0;
-    const nextLikeCount = nextIsLiked
-      ? previousLikeCount + 1
-      : Math.max(previousLikeCount - 1, 0);
+    const previousIsLiked = isLiked;
 
-    setIsLiked(nextIsLiked);
-    setCurrentPost(previous => ({
-      ...previous,
-      likes: nextLikeCount,
-    }));
     setIsLikeSubmitting(true);
 
     try {
-      const updatedPost = await updatePost(
-        currentPost.id,
-        {
-          likes: nextLikeCount,
-        }
+      const result = await togglePostLike(
+        currentPost.id
       );
+
+      const nextIsLiked =
+        Boolean(result?.liked);
+      const nextLikeCount =
+        Number(result?.likes ?? previousLikeCount);
+
+      setIsLiked(nextIsLiked);
+
+      setCurrentPost(previous => ({
+        ...previous,
+        likes: nextLikeCount,
+      }));
 
       const likedPostIds = readLikedPostIds();
       const nextLikedPostIds = nextIsLiked
@@ -482,20 +484,27 @@ export default function BoardDetail({
           );
 
       writeLikedPostIds(nextLikedPostIds);
-      updateCurrentPost(updatedPost);
+
+      onPostUpdated?.({
+        ...currentPost,
+        likes: nextLikeCount,
+      });
     } catch (error) {
       console.error(
         "Beauty Voice 공감 처리 오류:",
         error
       );
 
-      setIsLiked(!nextIsLiked);
+      setIsLiked(previousIsLiked);
       setCurrentPost(previous => ({
         ...previous,
         likes: previousLikeCount,
       }));
 
-      alert("공감을 처리하지 못했습니다.");
+      alert(
+        error?.message ||
+          "공감을 처리하지 못했습니다."
+      );
     } finally {
       setIsLikeSubmitting(false);
     }

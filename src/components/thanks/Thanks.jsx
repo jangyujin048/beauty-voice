@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import supabase from "../../api/supabase";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function Thanks({
   thanksForm,
@@ -8,7 +10,14 @@ export default function Thanks({
   likeThanks,
   likedThanksIds,
   dateLabel,
+  refreshThanks,
 }) {
+  const { user } = useAuth();
+  const currentUserId = user?.id || null;
+  const [editingId, setEditingId] = useState(null);
+  const [editReceiver, setEditReceiver] = useState("");
+  const [editMessage, setEditMessage] = useState("");
+  const [editError, setEditError] = useState("");
   const [expandedIds, setExpandedIds] = useState([]);
 
   const toggleExpanded = (id) => {
@@ -17,6 +26,55 @@ export default function Thanks({
         ? previous.filter((itemId) => itemId !== id)
         : [...previous, id]
     );
+  };
+
+  const startEdit = (item) => {
+    setEditingId(item.id);
+    setEditReceiver(item.receiver || "");
+    setEditMessage(item.message || "");
+    setEditError("");
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditReceiver("");
+    setEditMessage("");
+    setEditError("");
+  };
+
+  const saveEdit = async (item) => {
+    if (!currentUserId || item.created_by !== currentUserId) {
+      setEditError("본인이 작성한 Thanks만 수정할 수 있습니다.");
+      return;
+    }
+    if (!editReceiver.trim() || !editMessage.trim()) {
+      setEditError("대상과 감사 내용을 모두 입력해주세요.");
+      return;
+    }
+    const { error } = await supabase.from("thanks").update({
+      receiver: editReceiver.trim(),
+      message: editMessage.trim(),
+    }).eq("id", item.id).eq("created_by", currentUserId);
+    if (error) {
+      console.error(error);
+      setEditError("수정 중 오류가 발생했습니다.");
+      return;
+    }
+    cancelEdit();
+    if (refreshThanks) await refreshThanks();
+  };
+
+  const removeThanks = async (item) => {
+    if (!currentUserId || item.created_by !== currentUserId) return;
+    if (!window.confirm("이 Thanks를 삭제하시겠습니까?\n삭제한 내용은 되돌릴 수 없습니다.")) return;
+    const { error } = await supabase.from("thanks").delete()
+      .eq("id", item.id).eq("created_by", currentUserId);
+    if (error) {
+      console.error(error);
+      alert("삭제 중 오류가 발생했습니다.");
+      return;
+    }
+    if (refreshThanks) await refreshThanks();
   };
 
   const today = new Date();
@@ -479,9 +537,9 @@ export default function Thanks({
                               {monthGroup.items.map(
                                 (item) => {
                                   const isLiked =
-                                    likedThanksIds.includes(
-                                      item.id
-                                    );
+                                     likedThanksIds
+                                       .map(String)
+                                       .includes(String(item.id));
 
                                   const isExpanded =
                                     expandedIds.includes(
@@ -491,6 +549,13 @@ export default function Thanks({
                                   const isLongMessage =
                                     item.message
                                       ?.length > 120;
+
+                                  const isMine =
+                                    Boolean(currentUserId) &&
+                                    item.created_by === currentUserId;
+
+                                  const isEditing =
+                                    editingId === item.id;
 
                                   return (
                                     <div
@@ -537,62 +602,168 @@ export default function Thanks({
                                       </div>
 
                                       {/* 내용 */}
-                                      <p
-                                        style={{
-                                          margin: 0,
-                                          lineHeight: 1.7,
-                                          whiteSpace:
-                                            "pre-wrap",
-                                          display:
-                                            isLongMessage &&
-                                            !isExpanded
-                                              ? "-webkit-box"
-                                              : "block",
-                                          WebkitLineClamp:
-                                            isLongMessage &&
-                                            !isExpanded
-                                              ? 4
-                                              : "unset",
-                                          WebkitBoxOrient:
-                                            "vertical",
-                                          overflow:
-                                            isLongMessage &&
-                                            !isExpanded
-                                              ? "hidden"
-                                              : "visible",
-                                        }}
-                                      >
-                                        {item.message}
-                                      </p>
-
-                                      {isLongMessage && (
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            toggleExpanded(
-                                              item.id
-                                            )
-                                          }
+                                      {isEditing ? (
+                                        <div
                                           style={{
-                                            marginTop: 8,
-                                            padding: 0,
-                                            border: 0,
-                                            background:
-                                              "transparent",
-                                            color:
-                                              "#163A73",
-                                            fontSize: 13,
-                                            fontWeight: 700,
-                                            cursor:
-                                              "pointer",
-                                            alignSelf:
-                                              "flex-start",
+                                            display: "grid",
+                                            gap: 10,
                                           }}
                                         >
-                                          {isExpanded
-                                            ? "접기"
-                                            : "더보기"}
-                                        </button>
+                                          <input
+                                            value={editReceiver}
+                                            onChange={(e) =>
+                                              setEditReceiver(
+                                                e.target.value
+                                              )
+                                            }
+                                            placeholder="감사를 전할 대상"
+                                            style={{
+                                              height: 42,
+                                              padding: "0 12px",
+                                              border:
+                                                "1px solid #CBD5E1",
+                                              borderRadius: 10,
+                                              outline: "none",
+                                            }}
+                                          />
+
+                                          <textarea
+                                            value={editMessage}
+                                            onChange={(e) =>
+                                              setEditMessage(
+                                                e.target.value
+                                              )
+                                            }
+                                            rows={5}
+                                            style={{
+                                              padding: 12,
+                                              border:
+                                                "1px solid #CBD5E1",
+                                              borderRadius: 10,
+                                              lineHeight: 1.6,
+                                              outline: "none",
+                                              resize: "vertical",
+                                            }}
+                                          />
+
+                                          {editError && (
+                                            <small
+                                              style={{
+                                                color: "#B42318",
+                                                fontWeight: 700,
+                                              }}
+                                            >
+                                              {editError}
+                                            </small>
+                                          )}
+
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              justifyContent:
+                                                "flex-end",
+                                              gap: 8,
+                                            }}
+                                          >
+                                            <button
+                                              type="button"
+                                              onClick={cancelEdit}
+                                            >
+                                              취소
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                saveEdit(item)
+                                              }
+                                              style={{
+                                                background:
+                                                  "#163A73",
+                                                color: "#fff",
+                                                border: 0,
+                                                borderRadius: 8,
+                                                padding:
+                                                  "8px 12px",
+                                                fontWeight: 700,
+                                                cursor: "pointer",
+                                              }}
+                                            >
+                                              저장
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
+                                          <p
+                                            style={{
+                                              margin: 0,
+                                              lineHeight: 1.7,
+                                              whiteSpace:
+                                                "pre-wrap",
+                                              display:
+                                                isLongMessage &&
+                                                !isExpanded
+                                                  ? "-webkit-box"
+                                                  : "block",
+                                              WebkitLineClamp:
+                                                isLongMessage &&
+                                                !isExpanded
+                                                  ? 4
+                                                  : "unset",
+                                              WebkitBoxOrient:
+                                                "vertical",
+                                              overflow:
+                                                isLongMessage &&
+                                                !isExpanded
+                                                  ? "hidden"
+                                                  : "visible",
+                                            }}
+                                          >
+                                            {item.message}
+                                          </p>
+
+                                          {isLongMessage && (
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                toggleExpanded(
+                                                  item.id
+                                                )
+                                              }
+                                              style={{
+                                                marginTop: 8,
+                                                padding: 0,
+                                                border: 0,
+                                                background:
+                                                  "transparent",
+                                                color:
+                                                  "#163A73",
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                cursor:
+                                                  "pointer",
+                                                alignSelf:
+                                                  "flex-start",
+                                              }}
+                                            >
+                                              {isExpanded
+                                                ? "접기"
+                                                : "더보기"}
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {isMine && !isEditing && (
+                                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>
+                                          <button type="button" onClick={() => startEdit(item)} style={{ border: 0, background: "transparent", color: "#667085", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                                            수정
+                                          </button>
+                                          <button type="button" onClick={() => removeThanks(item)} style={{ border: 0, background: "transparent", color: "#B42318", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                                            삭제
+                                          </button>
+                                        </div>
                                       )}
 
                                       {/* 하단 */}
@@ -624,9 +795,6 @@ export default function Thanks({
                                             likeThanks(
                                               item
                                             )
-                                          }
-                                          disabled={
-                                            isLiked
                                           }
                                           style={{
                                             padding:

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import supabase from "./api/supabase";
 import { normalizeVoice, loadVoices } from "./api/voiceApi";
-import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw, Trophy } from "lucide-react";
+import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw, Trophy, CalendarDays } from "lucide-react";
 import "./style.css";
 import AdminFilters from "./components/admin/AdminFilters";
 import DashboardStats from "./components/admin/DashboardStats";
@@ -15,11 +15,12 @@ import Insight from "./components/insight/Insight";
 import BeautyVoiceBoard from "./components/board/BeautyVoiceBoard";
 import LoginButton from "./components/auth/LoginButton";
 import MyVoice from "./components/myvoice/MyVoice";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import AdminBoardPosts from "./components/admin/AdminBoardPosts";
 import AdminContentManager from "./components/admin/AdminContentManager";
 import WeeklyChallenge from "./components/challenge/WeeklyChallenge";
 import AdminChallengeManager from "./components/admin/AdminChallengeManager";
+import BeautyLab from "./components/beautylab/BeautyLab";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -35,6 +36,7 @@ import { makeAnonId } from "./utils/id";
 import { renderLinkedText } from "./utils/link";
 
 export default function App() {
+  const { user } = useAuth();
   const [tab, setTab] = useState("home");
   const [voices, setVoices] = useState([]);
   const [notices, setNotices] = useState([]);
@@ -42,13 +44,7 @@ export default function App() {
   const [selectedHomeNotice, setSelectedHomeNotice] = useState(null);
   const [thanksList, setThanksList] = useState([]);
   const [thanksForm, setThanksForm] = useState({ receiver: "", message: "" });
-  const [likedThanksIds, setLikedThanksIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("beauty_voice_liked_thanks") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  const [likedThanksIds, setLikedThanksIds] = useState([]);
   const [faqs, setFaqs] = useState([]);
   const [faqKeyword, setFaqKeyword] = useState("");
   const [faqCategoryFilter, setFaqCategoryFilter] = useState("전체");
@@ -187,6 +183,32 @@ const [adminSubTab, setAdminSubTab] = useState("board");
     loadFaqs();
     loadInsights();
   }, []);
+
+  useEffect(() => {
+    async function loadMyThanksLikes() {
+      if (!user?.id) {
+        setLikedThanksIds([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("thanks_likes")
+        .select("thanks_id")
+        .eq("user_id", user.id);
+
+      if (error) {
+        console.error("Thanks 공감 상태 조회 오류:", error);
+        setLikedThanksIds([]);
+        return;
+      }
+
+      setLikedThanksIds(
+        (data || []).map((item) => String(item.thanks_id))
+      );
+    }
+
+    loadMyThanksLikes();
+  }, [user?.id]);
 
   const filteredVoices = useMemo(() => {
     const keyword = voiceKeyword.trim().toLowerCase();
@@ -479,38 +501,66 @@ function loginAdmin(e) {
   }
 
   async function likeThanks(item) {
-    if (likedThanksIds.includes(item.id)) {
-      alert("이미 공감한 Thanks입니다.");
+    if (!user?.id) {
+      alert("로그인 후 공감할 수 있습니다.");
       return;
     }
 
-    const { error } = await supabase
-      .from("thanks")
-      .update({ likes: (item.likes || 0) + 1 })
-      .eq("id", item.id);
+    const { data, error } = await supabase.rpc(
+      "toggle_thanks_like",
+      {
+        p_thanks_id: String(item.id),
+      }
+    );
 
     if (error) {
-      alert("좋아요 반영 중 오류가 발생했습니다.");
-      console.error(error);
+      alert("공감 처리 중 오류가 발생했습니다.");
+      console.error("Thanks 공감 처리 오류:", error);
       return;
     }
 
-    const nextLikedIds = [...likedThanksIds, item.id];
-    setLikedThanksIds(nextLikedIds);
-    localStorage.setItem("beauty_voice_liked_thanks", JSON.stringify(nextLikedIds));
+    const liked = Boolean(data?.liked);
+    const likes = Number(data?.likes ?? item.likes ?? 0);
+    const itemId = String(item.id);
 
-    await loadThanks();
+    setThanksList((previous) =>
+      previous.map((thanksItem) =>
+        String(thanksItem.id) === itemId
+          ? {
+              ...thanksItem,
+              likes,
+            }
+          : thanksItem
+      )
+    );
+
+    setLikedThanksIds((previous) =>
+      liked
+        ? Array.from(new Set([...previous, itemId]))
+        : previous.filter((id) => String(id) !== itemId)
+    );
   }
 
   async function submitThanks(e) {
     e.preventDefault();
 
-    if (!thanksForm.receiver.trim()) return alert("감사를 전할 대상을 입력해주세요.");
-    if (!thanksForm.message.trim()) return alert("감사 내용을 입력해주세요.");
+    if (!user) {
+      alert("로그인 후 Thanks를 남길 수 있습니다.");
+      return;
+    }
+
+    if (!thanksForm.receiver.trim()) {
+      return alert("감사를 전할 대상을 입력해주세요.");
+    }
+
+    if (!thanksForm.message.trim()) {
+      return alert("감사 내용을 입력해주세요.");
+    }
 
     const { error } = await supabase.from("thanks").insert({
       receiver: thanksForm.receiver.trim(),
-      message: thanksForm.message.trim()
+      message: thanksForm.message.trim(),
+      created_by: user.id
     });
 
     if (error) {
@@ -587,6 +637,118 @@ async function checkMyReplies(e) {
     await loadData();
   }
 
+  const loginRequiredInfo = {
+    home: {
+      title: "홈",
+      icon: Bell,
+      message: "로그인 후 Beauty Voice의 주요 소식과 콘텐츠를 확인할 수 있습니다.",
+    },
+    notice: {
+      title: "공지사항",
+      icon: Bell,
+      message: "로그인 후 공지사항과 주요 안내를 확인할 수 있습니다.",
+    },
+    voice: {
+      title: "Beauty Voice",
+      icon: MessageCircle,
+      message: "로그인 후 구성원들의 이야기와 의견을 확인하고 참여할 수 있습니다.",
+    },
+    myVoice: {
+      title: "My Voice",
+      icon: Inbox,
+      message: "로그인 후 내가 작성한 글을 확인할 수 있습니다.",
+    },
+    challenge: {
+      title: "Beauty Mission",
+      icon: Trophy,
+      message: "로그인 후 진행 중인 미션을 확인하고 참여할 수 있습니다.",
+    },
+    thanks: {
+      title: "Thanks",
+      icon: Heart,
+      message: "로그인 후 동료에게 Thanks를 남기고 감사 메시지를 확인할 수 있습니다.",
+    },
+    faq: {
+      title: "FAQ",
+      icon: BookOpen,
+      message: "로그인 후 FAQ와 운영 정보를 확인할 수 있습니다.",
+    },
+    insight: {
+      title: "BC 인사이트",
+      icon: BookOpen,
+      message: "로그인 후 BC 인사이트와 주요 리포트를 확인할 수 있습니다.",
+    },
+    admin: {
+      title: "운영진",
+      icon: Lock,
+      message: "로그인 후 운영진 전용 메뉴에 접근할 수 있습니다.",
+    },
+    beautylab: {
+      title: "BEAUTY LAB",
+      icon: CalendarDays,
+      message: "로그인 후 BEAUTY LAB 메뉴를 이용할 수 있습니다.",
+    },
+  };
+
+  function LoginRequiredPanel() {
+    const info =
+      loginRequiredInfo[tab] || loginRequiredInfo.home;
+    const Icon = info.icon;
+
+    return (
+      <section
+        className="panel center"
+        style={{
+          minHeight: 345,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          textAlign: "center",
+        }}
+      >
+        <Icon
+          size={52}
+          strokeWidth={1.8}
+          style={{
+            color: "#163A73",
+            marginBottom: 12,
+          }}
+        />
+
+        <h2
+          style={{
+            margin: 0,
+            fontSize: 28,
+            fontWeight: 800,
+          }}
+        >
+          {info.title}
+        </h2>
+
+        <p
+          className="sub"
+          style={{
+            margin: "14px 0 22px",
+            fontSize: 15,
+            lineHeight: 1.7,
+          }}
+        >
+          {info.message}
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <LoginButton />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <div className="app">
       <aside className="sidebar">
@@ -620,6 +782,16 @@ async function checkMyReplies(e) {
         <button onClick={() => setTab("thanks")} className={tab === "thanks" ? "active" : ""}><Heart size={18}/> Thanks</button>
         <button onClick={() => setTab("faq")} className={tab === "faq" ? "active" : ""}><BookOpen size={18}/> FAQ</button>
         <button onClick={() => setTab("insight")} className={tab === "insight" ? "active" : ""}><BookOpen size={18}/> BC 인사이트</button>
+
+{/* BEAUTY LAB - 잠정 보류
+<button
+  onClick={() => setTab("beautylab")}
+  className={tab === "beautylab" ? "active" : ""}
+>
+  <CalendarDays size={18}/> BEAUTY LAB
+</button>
+*/}
+
         <button onClick={() => setTab("admin")} className={tab === "admin" ? "active" : ""}><Lock size={18}/> 운영진</button>
 <div
   style={{
@@ -632,6 +804,11 @@ async function checkMyReplies(e) {
       </aside>
 
       <main className="main">
+        {!user ? (
+          <LoginRequiredPanel />
+        ) : (
+          <>
+
         {tab === "home" && (
           <>
             <section className="hero">
@@ -1026,6 +1203,7 @@ async function checkMyReplies(e) {
     likeThanks={likeThanks}
     likedThanksIds={likedThanksIds}
     dateLabel={dateLabel}
+    refreshThanks={loadThanks}
   />
 )}
 
@@ -1051,6 +1229,10 @@ async function checkMyReplies(e) {
     selectedInsight={selectedInsight}
     setSelectedInsight={setSelectedInsight}
   />
+)}
+
+{tab === "beautylab" && (
+  <BeautyLab />
 )}
 
 {tab === "admin" && !adminLoggedIn && (
@@ -1169,6 +1351,9 @@ async function checkMyReplies(e) {
               />
             )}
           </section>
+        )}
+      
+          </>
         )}
       </main>
     </div>
