@@ -1680,7 +1680,6 @@ textarea { min-height: 160px; resize: vertical; }
   background: transparent;
 }
 
-cat >> src/style.css <<'EOF'
 
 /* =========================================================
    BEAUTY LAB
