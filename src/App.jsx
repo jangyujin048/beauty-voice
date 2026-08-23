@@ -862,7 +862,7 @@ async function checkMyReplies(e) {
               <h2 className="home-hero-title">
   메이크업 BC의 목소리가 모이는 공간
 </h2>
-              <p>메이크업 BC 전용 익명 소통 채널입니다.</p>
+              <p>올리브영 BC 전용 익명 소통 채널입니다.</p>
               <button onClick={() => setTab("voice")}>익명 의견 남기기</button>
             </section>
 
