@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import supabase from "./api/supabase";
 import { normalizeVoice, loadVoices } from "./api/voiceApi";
-import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw, Trophy, CalendarDays } from "lucide-react";
+import { Bell, MessageCircle, Heart, BookOpen, Send, Lock, CheckCircle2, Inbox, RefreshCw, Trophy, CalendarDays, Menu, X, Home } from "lucide-react";
 import "./style.css";
 import AdminFilters from "./components/admin/AdminFilters";
 import DashboardStats from "./components/admin/DashboardStats";
@@ -38,6 +38,7 @@ import { renderLinkedText } from "./utils/link";
 export default function App() {
   const { user } = useAuth();
   const [tab, setTab] = useState("home");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [voices, setVoices] = useState([]);
   const [notices, setNotices] = useState([]);
   const [selectedNotice, setSelectedNotice] = useState(null);
@@ -637,6 +638,17 @@ async function checkMyReplies(e) {
     await loadData();
   }
 
+  useEffect(() => {
+    setMobileMenuOpen(false);
+
+    if (typeof window !== "undefined" && window.innerWidth <= 900) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }
+  }, [tab]);
+
   const loginRequiredInfo = {
     home: {
       title: "홈",
@@ -802,6 +814,40 @@ async function checkMyReplies(e) {
   <LoginButton />
 </div>
       </aside>
+
+      <header className="mobileTopBar">
+        <button className="mobileBrandButton" type="button" onClick={() => setTab("home")} aria-label="홈으로 이동">
+          <span className="mobileLogo">BV</span>
+          <span className="mobileBrandText">
+            <strong>Beauty Voice</strong>
+            <small>메이크업 BC 전용 소통 공간</small>
+          </span>
+        </button>
+        <button className="mobileMenuButton" type="button" onClick={() => setMobileMenuOpen(true)} aria-label="전체 메뉴 열기">
+          <Menu size={24} />
+        </button>
+      </header>
+
+      {mobileMenuOpen && (
+        <div className="mobileMenuBackdrop" onClick={() => setMobileMenuOpen(false)}>
+          <aside className="mobileMenuSheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobileMenuHeader">
+              <div>
+                <strong>전체 메뉴</strong>
+                <span>Beauty Voice</span>
+              </div>
+              <button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="전체 메뉴 닫기"><X size={22} /></button>
+            </div>
+            <nav className="mobileMoreNav">
+              <button type="button" className={tab === "notice" ? "active" : ""} onClick={() => { setTab("notice"); setMobileMenuOpen(false); }}><Bell size={19}/> 공지사항</button>
+              <button type="button" className={tab === "faq" ? "active" : ""} onClick={() => { setTab("faq"); setMobileMenuOpen(false); }}><BookOpen size={19}/> FAQ</button>
+              <button type="button" className={tab === "insight" ? "active" : ""} onClick={() => { setTab("insight"); setMobileMenuOpen(false); }}><BookOpen size={19}/> BC 인사이트</button>
+              <button type="button" className={tab === "admin" ? "active" : ""} onClick={() => { setTab("admin"); setMobileMenuOpen(false); }}><Lock size={19}/> 운영진</button>
+            </nav>
+            <div className="mobileMenuLogin"><LoginButton /></div>
+          </aside>
+        </div>
+      )}
 
       <main className="main">
         {!user ? (
@@ -1356,6 +1402,14 @@ async function checkMyReplies(e) {
           </>
         )}
       </main>
+
+      <nav className="mobileBottomNav" aria-label="모바일 주요 메뉴">
+        <button type="button" aria-label="홈" onClick={() => setTab("home")} className={tab === "home" ? "active" : ""}><Home size={21}/><span>홈</span></button>
+        <button type="button" aria-label="Beauty Voice" onClick={() => setTab("voice")} className={tab === "voice" ? "active" : ""}><MessageCircle size={21}/><span>Voice</span></button>
+        <button type="button" aria-label="Beauty Mission" onClick={() => setTab("challenge")} className={tab === "challenge" ? "active" : ""}><Trophy size={21}/><span>Mission</span></button>
+        <button type="button" aria-label="Thanks" onClick={() => setTab("thanks")} className={tab === "thanks" ? "active" : ""}><Heart size={21}/><span>Thanks</span></button>
+        <button type="button" aria-label="My Voice" onClick={() => setTab("myVoice")} className={tab === "myVoice" ? "active" : ""}><Inbox size={21}/><span>My</span></button>
+      </nav>
     </div>
   );
 }
