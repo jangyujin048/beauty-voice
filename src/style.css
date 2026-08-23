@@ -3503,3 +3503,13 @@ textarea { min-height: 160px; resize: vertical; }
     box-shadow: none;
   }
 }
+
+/* 모바일 홈 메인 타이틀 */
+@media (max-width: 768px) {
+  .home-hero-title {
+    font-size: 21px !important;
+    letter-spacing: -1.2px !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+  }
+}

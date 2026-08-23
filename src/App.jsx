@@ -859,7 +859,9 @@ async function checkMyReplies(e) {
           <>
             <section className="hero">
               <span>Beauty Voice</span>
-              <h2>메이크업 BC의 목소리가 모이는 공간</h2>
+              <h2 className="home-hero-title">
+  메이크업 BC의 목소리가 모이는 공간
+</h2>
               <p>올리브영N 성수, 뷰티맨션 성수, 센트럴강남타운 메이크업 BC 전용 익명 소통 채널입니다.</p>
               <button onClick={() => setTab("voice")}>익명 의견 남기기</button>
             </section>
