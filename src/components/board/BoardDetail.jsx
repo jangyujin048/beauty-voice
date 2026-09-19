@@ -306,6 +306,7 @@ export default function BoardDetail({
   const {
     user: authUser,
     isLoggedIn,
+    canReplyOfficial,
   } = useAuth();
 
   const user = currentUser ?? authUser;
@@ -510,13 +511,15 @@ export default function BoardDetail({
     }
   };
 
-  const handleSubmitComment = async event => {
+  const handleSubmitComment = async (event, official = false) => {
     event.preventDefault();
 
     if (!isLoggedIn || !user?.id) {
       alert("로그인 후 댓글을 작성할 수 있습니다.");
       return;
     }
+
+    if (official && !canReplyOfficial) return;
 
     const trimmedComment = comment.trim();
 
@@ -535,9 +538,7 @@ export default function BoardDetail({
       const newComment = await createComment({
         postId: currentPost.id,
         content: trimmedComment,
-        writer: "익명 BC",
-        userId: user.id,
-        isAdmin: false,
+        isAdmin: official,
       });
 
       setComments(previous => [
@@ -546,10 +547,13 @@ export default function BoardDetail({
       ]);
       setComment("");
 
-      onPostUpdated?.({
+      const nextPost = {
         ...currentPost,
+        ...(official ? { status: "답변완료" } : {}),
         comment_count: comments.length + 1,
-      });
+      };
+      setCurrentPost(nextPost);
+      onPostUpdated?.(nextPost);
     } catch (error) {
       console.error(
         "Beauty Voice 댓글 등록 오류:",
@@ -1228,17 +1232,11 @@ style={{
                   >
                     <strong>
                       {isAdmin
-                        ? "운영진"
+                        ? "운영진 · 조직문화팀"
                         : anonymousNumber
                           ? `BC·${anonymousNumber}`
                           : "익명 BC"}
                     </strong>
-
-                    {isAdmin && (
-                      <CommentBadge type="admin">
-                        운영진
-                      </CommentBadge>
-                    )}
 
                     {!isAdmin &&
                       isPostWriter && (
@@ -1419,19 +1417,27 @@ style={{
               disabled={isCommentSubmitting}
             />
 
-            <button
-  type="submit"
-  className="soft"
-  disabled={
-    isCommentSubmitting ||
-    !comment.trim()
-  }
->
-              <Send size={17} />
-              {isCommentSubmitting
-                ? "등록 중..."
-                : "댓글 등록"}
-            </button>
+            <div style={styles.actions}>
+              <button
+                type="submit"
+                className="soft"
+                disabled={isCommentSubmitting || !comment.trim()}
+              >
+                <Send size={17} />
+                {isCommentSubmitting ? "등록 중..." : "댓글 등록"}
+              </button>
+              {canReplyOfficial && (
+                <button
+                  type="button"
+                  className="soft"
+                  disabled={isCommentSubmitting || !comment.trim()}
+                  onClick={event => handleSubmitComment(event, true)}
+                >
+                  <Send size={17} />
+                  운영진으로 답변
+                </button>
+              )}
+            </div>
           </form>
         ) : (
           <div className="empty">

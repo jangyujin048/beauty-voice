@@ -1,4 +1,4 @@
-import supabase from "../../api/supabase";
+import { useAuth } from "../../contexts/AuthContext";
 import React, {
   useEffect,
   useMemo,
@@ -17,7 +17,6 @@ import {
 
 import {
   getAdminPosts,
-  updatePostStatus,
 } from "../../services/postService";
 
 import {
@@ -26,6 +25,7 @@ import {
 } from "../../services/commentService";
 
 export default function AdminBoardPosts() {
+  const { canReplyOfficial } = useAuth();
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -161,7 +161,8 @@ export default function AdminBoardPosts() {
     await loadComments(postId);
   };
 
-const handleSubmitComment = async post => {
+const handleSubmitComment = async (post, official = false) => {
+  if (isSubmitting || (official && !canReplyOfficial)) return;
   const trimmedComment = commentText.trim();
 
   if (!trimmedComment) {
@@ -172,29 +173,10 @@ const handleSubmitComment = async post => {
   try {
     setIsSubmitting(true);
 
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      throw sessionError;
-    }
-
-    const currentUser = session?.user;
-
-    if (!currentUser) {
-      throw new Error(
-        "로그인 세션을 확인할 수 없습니다. 로그아웃 후 다시 로그인해주세요."
-      );
-    }
-
     const newComment = await createComment({
       postId: post.id,
       content: trimmedComment,
-      writer: "운영진",
-      userId: currentUser.id,
-      isAdmin: true,
+      isAdmin: official,
     });
 
     setCommentsByPost(previous => ({
@@ -205,25 +187,14 @@ const handleSubmitComment = async post => {
       ],
     }));
 
-    if (post.status !== "답변완료") {
-      const updatedPost = await updatePostStatus(
-        post.id,
-        "답변완료"
-      );
+    setCommentText("");
 
-      setPosts(previous =>
-        previous.map(item =>
-          item.id === post.id
-            ? {
-                ...item,
-                ...updatedPost,
-              }
-            : item
-        )
-      );
+    if (official) {
+      setPosts(previous => previous.map(item =>
+        item.id === post.id ? { ...item, status: "답변완료" } : item
+      ));
     }
 
-    setCommentText("");
     alert("답변이 등록되었습니다.");
   } catch (error) {
     console.error(
@@ -537,10 +508,11 @@ const handleSubmitComment = async post => {
                               key={comment.id}
                               className="adminReplyItem"
                             >
-                              <div className="adminReplyMeta">
-                                <strong>
-                                  {comment.writer ||
-                                    "운영진"}
+                              <div className="adminReplyMeta" style={{ flexWrap: "wrap" }}>
+                                <strong style={{ whiteSpace: "nowrap" }}>
+                                  {comment.is_admin === true
+                                    ? "운영진 · 조직문화팀"
+                                    : "익명 BC"}
                                 </strong>
 
                                 <span>
@@ -569,16 +541,16 @@ const handleSubmitComment = async post => {
                         rows={4}
                       />
 
-                      <div className="adminReplyActions">
+                      <div className="adminReplyActions" style={{ flexWrap: "wrap" }}>
                         <span>
-                          답변 등록 시 게시글 상태가
+                          운영진으로 답변 시 게시글 상태가
                           답변완료로 변경됩니다.
                         </span>
 
                         <button
                           type="button"
                           className="primary"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || !commentText.trim()}
                           onClick={() =>
                             handleSubmitComment(post)
                           }
@@ -587,8 +559,19 @@ const handleSubmitComment = async post => {
 
                           {isSubmitting
                             ? "등록 중..."
-                            : "답변 등록"}
+                            : "익명 답변 등록"}
                         </button>
+                        {canReplyOfficial && (
+                          <button
+                            type="button"
+                            className="primary"
+                            disabled={isSubmitting || !commentText.trim()}
+                            onClick={() => handleSubmitComment(post, true)}
+                          >
+                            <Send size={16} />
+                            운영진으로 답변
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

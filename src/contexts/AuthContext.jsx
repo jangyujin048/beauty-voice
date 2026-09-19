@@ -15,6 +15,32 @@ export function AuthProvider({ children }) {
   const [isAuthLoading, setIsAuthLoading] =
     useState(true);
 
+  const [officialAccess, setOfficialAccess] = useState(null);
+
+  // Bind the response to this session: a previous account must never lend its UI permission.
+  useEffect(() => {
+    let active = true;
+    setOfficialAccess(null);
+    if (!session?.user?.id) return;
+
+    supabase.rpc("beauty_voice_can_reply_official")
+      .then(({ data, error }) => {
+        if (active) setOfficialAccess({
+          token: session.access_token,
+          allowed: !error && data === true,
+        });
+      })
+      .catch(() => {
+        if (active) setOfficialAccess(null);
+      });
+    return () => { active = false; };
+  }, [session]);
+
+  const canReplyOfficial = Boolean(
+    user?.id && session?.access_token &&
+    officialAccess?.token === session.access_token && officialAccess.allowed
+  );
+
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -61,6 +87,7 @@ export function AuthProvider({ children }) {
     user,
     isAuthLoading,
     isLoggedIn: Boolean(user),
+    canReplyOfficial,
   };
 
   return (

@@ -29,8 +29,6 @@ export async function getComments(postId) {
 export async function createComment({
   postId,
   content,
-  writer,
-  userId,
   isAdmin = false,
 }) {
   const trimmedContent = content?.trim();
@@ -43,25 +41,26 @@ export async function createComment({
     throw new Error("댓글 내용을 입력해주세요.");
   }
 
-  let resolvedUserId = userId;
-
-  if (!resolvedUserId) {
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError) {
-      throw sessionError;
-    }
-
-    resolvedUserId = session?.user?.id;
-  }
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  const resolvedUserId = user?.id;
 
   if (!resolvedUserId) {
     throw new Error(
       "로그인 세션을 확인할 수 없습니다. 로그아웃 후 다시 로그인해주세요."
     );
+  }
+
+  const official = isAdmin === true;
+  if (official) {
+    const { data: allowed, error: permissionError } =
+      await supabase.rpc("beauty_voice_can_reply_official");
+    if (permissionError || allowed !== true) {
+      throw new Error("운영진 답변 권한을 확인할 수 없습니다.");
+    }
   }
 
   const { data, error } = await supabase
@@ -70,9 +69,9 @@ export async function createComment({
       {
         post_id: postId,
         content: trimmedContent,
-        writer: writer?.trim() || "익명 BC",
+        writer: official ? "운영진 · 조직문화팀" : "익명 BC",
         user_id: resolvedUserId,
-        is_admin: Boolean(isAdmin),
+        is_admin: official,
       },
     ])
     .select()
