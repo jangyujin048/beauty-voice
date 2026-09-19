@@ -21,6 +21,7 @@ import AdminContentManager from "./components/admin/AdminContentManager";
 import WeeklyChallenge from "./components/challenge/WeeklyChallenge";
 import AdminChallengeManager from "./components/admin/AdminChallengeManager";
 import BeautyLab from "./components/beautylab/BeautyLab";
+import MemberManager from "./components/members/MemberManager";
 
 const ADMIN_PASSWORD = "bcadmin2026!";
 
@@ -36,7 +37,7 @@ import { makeAnonId } from "./utils/id";
 import { renderLinkedText } from "./utils/link";
 
 export default function App() {
-  const { user } = useAuth();
+  const { user, canReplyOfficial } = useAuth();
   const [tab, setTab] = useState("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [voices, setVoices] = useState([]);
@@ -1224,7 +1225,7 @@ async function checkMyReplies(e) {
 )}
 
 	{tab === "challenge" && (
-	  <WeeklyChallenge />
+	  <WeeklyChallenge key={user?.id || "guest"} />
 	)}
 
         {tab === "done" && (
@@ -1370,14 +1371,16 @@ async function checkMyReplies(e) {
 		>
 		  챌린지관리
 		</button>
+              {canReplyOfficial && <button onClick={() => setAdminSubTab("members")} className={adminSubTab === "members" ? "active" : ""}>구성원 관리</button>}
             </div>
 	    {adminSubTab === "board" && (
 		  <AdminBoardPosts />
 		)}
 		{adminSubTab === "challenge" && (
-		  <AdminChallengeManager />
+		  <AdminChallengeManager key={user?.id || "guest"} />
 		)}
 
+            {adminSubTab === "members" && <MemberManager key={user?.id || "guest"} />}
             {["notice", "faq", "insight"].includes(adminSubTab) && (
               <AdminContentManager
                 type={adminSubTab}

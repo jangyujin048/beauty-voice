@@ -1,0 +1,25 @@
+.member-management { min-width: 0; }
+.member-management .member-heading, .member-management .member-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.member-management .member-heading { margin-bottom: 20px; }
+.member-management .member-form { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto; align-items: end; gap: 12px; margin: 20px 0; }
+.member-management label { display: grid; gap: 8px; min-width: 0; font-weight: 700; }
+.member-management input, .member-management select { width: 100%; min-width: 0; box-sizing: border-box; padding: 12px; border: 1px solid #dde5f3; border-radius: 12px; background: #fff; color: #1f2937; font: inherit; }
+.member-management .member-filters { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .6fr); gap: 12px; margin: 20px 0; }
+.member-management .member-list { display: grid; gap: 12px; }
+.member-management .member-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+.member-management .member-row > div { min-width: 0; }
+.member-management .member-email { display: block; overflow-wrap: anywhere; margin-bottom: 6px; }
+.member-management .member-status { display: inline-block; margin-left: 8px; border-radius: 999px; padding: 3px 8px; font-size: 12px; background: #edf6f0; color: #28563b; }
+.member-management .member-status.paused { background: #f3f4f6; color: #667085; }
+.member-management .member-error { padding: 12px; color: #942929; background: #fff3f3; border-radius: 12px; overflow-wrap: anywhere; }
+.member-management .member-success { color: #28563b; padding: 10px 0; }
+.mission-audience { border: 1px solid #dde5f3; border-radius: 12px; padding: 16px; margin: 0 0 24px; min-width: 0; }
+.mission-audience legend { padding: 0 6px; font-weight: 800; }
+.mission-audience label { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+.mission-audience input { width: auto; flex: 0 0 auto; }
+.mission-audience .mission-store-options { margin-top: 12px; display: grid; gap: 6px; }
+@media (max-width: 640px) {
+ .member-management .member-form, .member-management .member-filters { grid-template-columns: minmax(0, 1fr); }
+ .member-management .member-row { align-items: flex-start; }
+ .member-management .member-actions { justify-content: flex-start; }
+}

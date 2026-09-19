@@ -83,7 +83,6 @@ export async function getChallengeComments(
 export async function createChallengeComment({
   challengeId,
   content,
-  userId,
   writer = "익명 BC",
 }) {
   const trimmedContent =
@@ -101,22 +100,9 @@ export async function createChallengeComment({
     );
   }
 
-  let resolvedUserId = userId;
-
-  if (!resolvedUserId) {
-    const {
-      data: { session },
-      error: sessionError,
-    } =
-      await supabase.auth.getSession();
-
-    if (sessionError) {
-      throw sessionError;
-    }
-
-    resolvedUserId =
-      session?.user?.id;
-  }
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError) throw userError;
+  const resolvedUserId = user?.id;
 
   if (!resolvedUserId) {
     throw new Error(
@@ -218,7 +204,9 @@ export async function deleteChallengeComment(
         "weekly_challenge_comments"
       )
       .delete()
-      .eq("id", commentId);
+      .eq("id", commentId)
+      .select("id")
+      .single();
 
   if (error) {
     throw error;
@@ -238,7 +226,7 @@ export async function checkIsAdmin() {
   const {
     data,
     error,
-  } = await supabase.rpc("is_admin");
+  } = await supabase.rpc("beauty_voice_can_reply_official");
 
   if (error) {
     console.error(
@@ -248,11 +236,6 @@ export async function checkIsAdmin() {
 
     throw error;
   }
-
-  console.log(
-    "운영진 권한 확인 결과:",
-    data
-  );
 
   return data === true;
 }
@@ -267,6 +250,7 @@ export async function createWeeklyChallenge({
   startDate,
   endDate,
   status = "active",
+  targetStoreIds = [],
 }) {
   const trimmedTitle =
     title?.trim();
@@ -302,9 +286,6 @@ export async function createWeeklyChallenge({
       "로그인 정보를 확인할 수 없습니다."
     );
   }
-if (status === "active") {
-  await closeOtherActiveChallenges();
-}
   const { data, error } =
     await supabase
       .from("weekly_challenges")
@@ -326,6 +307,7 @@ if (status === "active") {
             endDate,
 
           status,
+          target_store_ids: normalizeTargetStores(targetStoreIds),
 
           created_by:
             session.user.id,
@@ -353,6 +335,7 @@ export async function updateWeeklyChallenge(
     startDate,
     endDate,
     status,
+    targetStoreIds,
   }
 ) {
   if (!challengeId) {
@@ -395,11 +378,9 @@ export async function updateWeeklyChallenge(
     updatePayload.status =
       status;
   }
-if (status === "active") {
-  await closeOtherActiveChallenges(
-    challengeId
-  );
-}
+  if (targetStoreIds !== undefined) {
+    updatePayload.target_store_ids = normalizeTargetStores(targetStoreIds);
+  }
   const { data, error } =
     await supabase
       .from("weekly_challenges")
@@ -441,11 +422,6 @@ export async function reopenWeeklyChallenge(
     );
   }
 
-  // 현재 진행 중인 다른 미션 자동 종료
-  await closeOtherActiveChallenges(
-    challengeId
-  );
-
   // 선택한 미션를 다시 진행
   return updateWeeklyChallenge(
     challengeId,
@@ -474,7 +450,9 @@ export async function deleteWeeklyChallenge(
     await supabase
       .from("weekly_challenges")
       .delete()
-      .eq("id", challengeId);
+      .eq("id", challengeId)
+      .select("id")
+      .single();
 
   if (error) {
     throw error;
@@ -483,30 +461,10 @@ export async function deleteWeeklyChallenge(
   return challengeId;
 }
 
-/**
- * 현재 진행 중인 다른 미션 종료
- */
-async function closeOtherActiveChallenges(
-  exceptChallengeId = null
-) {
-  let query = supabase
-    .from("weekly_challenges")
-    .update({
-      status: "closed",
-      updated_at: new Date().toISOString(),
-    })
-    .eq("status", "active");
-
-  if (exceptChallengeId) {
-    query = query.neq(
-      "id",
-      exceptChallengeId
-    );
+// 빈 배열은 전체 매장. 여러 매장에서 미션을 동시에 운영할 수 있습니다.
+function normalizeTargetStores(values) {
+  if (!Array.isArray(values) || values.some(value => typeof value !== "string" || !value.trim())) {
+    throw new Error("공개 대상 매장을 확인해주세요.");
   }
-
-  const { error } = await query;
-
-  if (error) {
-    throw error;
-  }
+  return [...new Set(values.map(value => value.trim()))];
 }

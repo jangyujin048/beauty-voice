@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useState,
+  useRef,
 } from "react";
 
 import {
@@ -15,7 +16,6 @@ import {
 } from "lucide-react";
 
 import {
-  checkIsAdmin,
   closeWeeklyChallenge,
   createWeeklyChallenge,
   deleteWeeklyChallenge,
@@ -24,6 +24,10 @@ import {
   updateWeeklyChallenge,
 } from "../../services/challengeService";
 
+import { useAuth } from "../../contexts/AuthContext";
+import { getStores } from "../../services/memberService";
+import "../members/member-management.css";
+
 const EMPTY_FORM = {
   title: "",
   description: "",
@@ -31,6 +35,8 @@ const EMPTY_FORM = {
   startDate: "",
   endDate: "",
   status: "active",
+  audience: "all",
+  targetStoreIds: [],
 };
 
 function formatDate(value) {
@@ -53,13 +59,9 @@ export default function AdminChallengeManager() {
   const [isLoading, setIsLoading] =
     useState(true);
 
-  const [isAdmin, setIsAdmin] =
-    useState(false);
-
-  const [
-    isCheckingAdmin,
-    setIsCheckingAdmin,
-  ] = useState(true);
+  const { canReplyOfficial: isAdmin, isAuthLoading: isCheckingAdmin } = useAuth();
+  const [stores, setStores] = useState([]);
+  const requestId = useRef(0);
 
   const [
     isFormOpen,
@@ -84,61 +86,24 @@ export default function AdminChallengeManager() {
     setProcessingChallengeId,
   ] = useState(null);
 
-  const checkAdminPermission =
-    useCallback(async () => {
-      try {
-        setIsCheckingAdmin(true);
-
-        const result =
-          await checkIsAdmin();
-
-        setIsAdmin(result);
-      } catch (error) {
-        console.error(
-          "운영진 권한 확인 오류:",
-          error
-        );
-
-        setIsAdmin(false);
-      } finally {
-        setIsCheckingAdmin(false);
-      }
-    }, []);
-
-  const loadChallenges =
-    useCallback(async () => {
-      try {
-        setIsLoading(true);
-
-        const data =
-          await getWeeklyChallenges();
-
-        setChallenges(
-          Array.isArray(data)
-            ? data
-            : []
-        );
-      } catch (error) {
-        console.error(
-          "챌린지 목록 조회 오류:",
-          error
-        );
-
-        alert(
-          "챌린지 목록을 불러오지 못했습니다."
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }, []);
-
+  const loadChallenges = useCallback(async () => {
+    const request = ++requestId.current;
+    if (!isAdmin) { setChallenges([]); setStores([]); setIsLoading(false); return; }
+    setIsLoading(true);
+    try {
+      const [data, catalog] = await Promise.all([getWeeklyChallenges(), getStores()]);
+      if (request !== requestId.current) return;
+      setChallenges(data ?? []); setStores(catalog);
+    } catch {
+      if (request !== requestId.current) return;
+      setChallenges([]); setStores([]);
+      alert("미션 관리 정보를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.");
+    } finally { if (request === requestId.current) setIsLoading(false); }
+  }, [isAdmin]);
   useEffect(() => {
-    checkAdminPermission();
     loadChallenges();
-  }, [
-    checkAdminPermission,
-    loadChallenges,
-  ]);
+    return () => { requestId.current += 1; };
+  }, [loadChallenges]);
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
@@ -181,6 +146,8 @@ export default function AdminChallengeManager() {
       status:
         challenge.status ||
         "active",
+      audience: challenge.target_store_ids?.length ? "stores" : "all",
+      targetStoreIds: challenge.target_store_ids || [],
     });
 
     setIsFormOpen(true);
@@ -200,6 +167,11 @@ export default function AdminChallengeManager() {
     };
 
   const validateForm = () => {
+    if (form.audience === "stores" && !form.targetStoreIds.length) {
+      alert("공개할 매장을 하나 이상 선택해주세요.");
+      return false;
+    }
+
     if (!form.title.trim()) {
       alert(
         "챌린지 제목을 입력해주세요."
@@ -280,6 +252,7 @@ export default function AdminChallengeManager() {
 
               status:
                 form.status,
+              targetStoreIds: form.audience === "all" ? [] : form.targetStoreIds,
             }
           );
 
@@ -305,6 +278,7 @@ export default function AdminChallengeManager() {
 
             status:
               form.status,
+            targetStoreIds: form.audience === "all" ? [] : form.targetStoreIds,
           });
 
           alert(
@@ -600,7 +574,7 @@ export default function AdminChallengeManager() {
             }}
           >
             현재 로그인한 Google 계정은
-            admin_users에 등록되어 있지
+            운영진으로 등록되어 있지
             않습니다. 기존 운영진
             비밀번호로 페이지에
             들어왔더라도 챌린지
@@ -934,6 +908,19 @@ export default function AdminChallengeManager() {
               />
             </div>
 
+            <fieldset className="mission-audience" disabled={isSubmitting}>
+              <legend>공개 대상</legend>
+              <label><input type="radio" name="audience" value="all" checked={form.audience === "all"} onChange={handleFormChange} />전체 매장 구성원</label>
+              <label><input type="radio" name="audience" value="stores" checked={form.audience === "stores"} onChange={handleFormChange} />매장 선택</label>
+              {form.audience === "stores" && <div className="mission-store-options">
+                {stores.map(store => <label key={store.id}><input type="checkbox" checked={form.targetStoreIds.includes(store.id)} onChange={event => setForm(previous => ({
+                  ...previous,
+                  targetStoreIds: event.target.checked ? [...previous.targetStoreIds, store.id] : previous.targetStoreIds.filter(id => id !== store.id),
+                }))} />{store.name}</label>)}
+              </div>}
+              <p className="sub">선택한 매장의 이용 중인 구성원만 미션과 참여 댓글을 볼 수 있습니다. 운영진은 모든 미션을 관리합니다.</p>
+              <p className="sub">새 미션을 시작해도 다른 미션은 자동 종료되지 않습니다.</p>
+            </fieldset>
             {/* 운영 설정 */}
             <div
               style={{
@@ -1461,6 +1448,11 @@ export default function AdminChallengeManager() {
                         </div>
                       )}
 
+                      <p className="sub" style={{ marginBottom: 10 }}>
+                        공개 대상: {challenge.target_store_ids?.length
+                          ? challenge.target_store_ids.map(id => stores.find(store => store.id === id)?.name || id).join(", ")
+                          : "전체 매장 구성원"}
+                      </p>
                       {/* 기간 */}
                       <div
                         style={{
