@@ -22,10 +22,12 @@ const CATEGORIES = [
 ];
 
 const STORES = [
+  "전체",
   "올리브영N 성수",
   "올리브영 뷰티 맨션 성수",
   "올리브영 센트럴 강남 타운",
-];
+  "미공개",
+];;
 
 function getInitialForm(initialPost) {
   return {
