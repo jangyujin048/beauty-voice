@@ -52,9 +52,39 @@ export default function App() {
       <h1>Beauty Voice</h1>
       <p role="status">{checking ? "이용 권한 확인 중..." : messages[accessStatus] || messages.error}</p>
       {!checking && <LoginButton />}
-      {user && !checking && <button type="button" className="soft" onClick={refreshAccess}>등록 상태 다시 확인</button>}
+      {user && !checking && <AccessRecheck key={user.id} status={accessStatus} onCheck={refreshAccess} />}
     </section>
   </main>;
+}
+
+function AccessRecheck({ status, onCheck }) {
+  const [pending, setPending] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const results = {
+    unregistered: "확인했어요. 아직 구성원으로 등록되지 않았어요. 운영진에게 등록을 요청해주세요.",
+    paused: "확인했어요. 아직 이용 중지 상태예요. 운영진에게 이용 재개를 요청해주세요.",
+    error: "등록 상태를 확인하지 못했어요. 잠시 후 다시 시도해주세요.",
+  };
+  async function checkAgain() {
+    if (pending) return;
+    setPending(true);
+    setChecked(false);
+    try {
+      await onCheck();
+    } finally {
+      setPending(false);
+      setChecked(true);
+    }
+  }
+  return <div className="accessRecheck">
+    <button type="button" className="soft" onClick={checkAgain} disabled={pending} aria-busy={pending}>
+      {pending && <RefreshCw size={16} className="accessRecheckSpinner" aria-hidden="true" />}
+      {pending ? "확인 중…" : "등록 상태 다시 확인"}
+    </button>
+    <p className="accessRecheckResult" role="status" aria-live="polite" aria-atomic="true">
+      {pending ? "최신 등록 상태를 확인하고 있어요." : checked ? results[status] || "등록 상태를 다시 확인해주세요." : ""}
+    </p>
+  </div>;
 }
 
 function SiteContent() {

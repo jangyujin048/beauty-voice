@@ -3585,3 +3585,12 @@ textarea { min-height: 160px; resize: vertical; }
   .siteAccessCard { padding: 28px 24px; border-radius: 24px; }
   .siteAccessCard h1 { font-size: 24px; }
 }
+
+.accessRecheck { margin-top: 12px; }
+.accessRecheck > .soft { width: 100%; justify-content: center; min-height: 46px; font-size: 13px; }
+.accessRecheck > .soft:disabled { opacity: .65; cursor: wait; }
+.accessRecheckResult { margin: 12px 0 0; color: #667085; font-size: 13px; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
+.accessRecheckResult:empty { display: none; }
+.accessRecheckSpinner { animation: accessRecheckSpin 1s linear infinite; }
+@keyframes accessRecheckSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .accessRecheckSpinner { animation: none; } }
