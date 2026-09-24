@@ -3513,3 +3513,75 @@ textarea { min-height: 160px; resize: vertical; }
     word-break: keep-all !important;
   }
 }
+
+/* Membership access screen */
+.siteAccessPage {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.siteAccessCard {
+  width: 100%;
+  max-width: 420px;
+  padding: 36px;
+  border: 1px solid #e1e7f0;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgba(14, 45, 105, .05);
+}
+.siteAccessLogo {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 22px;
+  border-radius: 16px;
+  background: #0e2d69;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+}
+.siteAccessCard h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -.7px;
+}
+.siteAccessCard > p {
+  margin: 12px 0 28px;
+  color: #667085;
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.authLoginButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 13px 18px;
+  border: 1px solid #0e2d69;
+  border-radius: 14px;
+  background: #0e2d69;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color .15s, box-shadow .15s;
+}
+.authLoginButton:hover:not(:disabled) { background: #173e80; }
+.authLoginButton:focus-visible,
+.siteAccessCard button:focus-visible { outline: 3px solid #9cb9ed; outline-offset: 3px; }
+.authLoginButton:disabled { opacity: .6; cursor: wait; }
+.authLoginButton svg { flex-shrink: 0; }
+.siteAccessCard > .soft { width: 100%; justify-content: center; margin-top: 12px; font-size: 13px; }
+@media (max-width: 480px) {
+  .siteAccessPage { padding: 20px; }
+  .siteAccessCard { padding: 28px 24px; border-radius: 24px; }
+  .siteAccessCard h1 { font-size: 24px; }
+}

@@ -46,12 +46,13 @@ export default function App() {
     paused: "사이트 이용이 중지된 계정입니다. 운영진에게 문의해주세요.",
     error: "이용 권한을 확인하지 못했습니다. 잠시 후 다시 확인해주세요.",
   };
-  return <main style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 20 }}>
-    <section className="panel" style={{ width: "100%", maxWidth: 460, boxSizing: "border-box" }}>
+  return <main className="siteAccessPage">
+    <section className="siteAccessCard">
+      <div className="siteAccessLogo" aria-hidden="true">BV</div>
       <h1>Beauty Voice</h1>
       <p role="status">{checking ? "이용 권한 확인 중..." : messages[accessStatus] || messages.error}</p>
       {!checking && <LoginButton />}
-      {user && !checking && <button type="button" className="soft" onClick={refreshAccess} style={{ marginTop: 16 }}>등록 상태 다시 확인</button>}
+      {user && !checking && <button type="button" className="soft" onClick={refreshAccess}>등록 상태 다시 확인</button>}
     </section>
   </main>;
 }
