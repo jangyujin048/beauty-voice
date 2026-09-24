@@ -1,3 +1,4 @@
+import PrivateImage, { PrivateMediaLink } from "../media/PrivateMedia";
 import { dateLabel } from "../../utils/date";
 
 export default function VoiceDetail({
@@ -43,12 +44,12 @@ export default function VoiceDetail({
               <p>{selected.content}</p>
 
               {selected.imageUrl && (
-                <a
+                <PrivateMediaLink
                   href={selected.imageUrl}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <img
+                  <PrivateImage
                     src={selected.imageUrl}
                     alt="첨부 이미지"
                     style={{
@@ -57,7 +58,7 @@ export default function VoiceDetail({
                       marginTop: 12
                     }}
                   />
-                </a>
+                </PrivateMediaLink>
               )}
 
               <small>{dateLabel(selected.createdAt)}</small>

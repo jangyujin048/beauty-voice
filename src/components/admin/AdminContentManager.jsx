@@ -1,3 +1,4 @@
+import PrivateImage from "../media/PrivateMedia";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../../api/supabase";
 import AdminModal from "./AdminModal";
@@ -165,7 +166,7 @@ function ImageDropzone({ file, imageUrl, onFile, onRemove }) {
 
       {previewUrl && (
         <div className="admin-image-preview">
-          <img src={previewUrl} alt="업로드 이미지 미리보기" />
+          <PrivateImage src={previewUrl} alt="업로드 이미지 미리보기" />
           <div>
             <strong>{file ? file.name : "현재 등록된 이미지"}</strong>
             <span>{file ? "저장하면 새 이미지로 교체됩니다." : "이미지를 유지하거나 삭제할 수 있습니다."}</span>
@@ -584,7 +585,7 @@ if (type === "notice") {
         {config.imageField &&
           item[config.imageField] && (
             <div className="admin-card-thumbnail">
-              <img
+              <PrivateImage
                 src={item[config.imageField]}
                 alt=""
               />

@@ -3,6 +3,8 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useCallback,
+  useRef,
 } from "react";
 
 import supabase from "../api/supabase";
@@ -15,33 +17,45 @@ export function AuthProvider({ children }) {
   const [isAuthLoading, setIsAuthLoading] =
     useState(true);
 
-  const [officialAccess, setOfficialAccess] = useState(null);
+  const [access, setAccess] = useState(null);
+  const accessRequest = useRef(0);
 
-  // Bind the response to this session: a previous account must never lend its UI permission.
-  useEffect(() => {
-    let active = true;
-    setOfficialAccess(null);
-    if (!session?.user?.id) return;
-
-    supabase.rpc("beauty_voice_can_reply_official")
-      .then(({ data, error }) => {
-        if (active) setOfficialAccess({
-          token: session.access_token,
-          allowed: !error && data === true,
-        });
-      })
-      .catch(() => {
-        if (active) setOfficialAccess(null);
-      });
-    return () => { active = false; };
+  const refreshAccess = useCallback(async () => {
+    const request = ++accessRequest.current;
+    if (!session?.user?.id) { setAccess(null); return; }
+    try {
+      const { data, error } = await supabase.rpc("beauty_voice_site_access");
+      if (error) throw error;
+      if (request !== accessRequest.current) return;
+      const result = data?.[0];
+      setAccess({ token: session.access_token, status: result?.status || "error", admin: result?.is_admin === true });
+    } catch {
+      if (request === accessRequest.current) {
+        setAccess({ token: session.access_token, status: "error", admin: false });
+      }
+    }
   }, [session]);
 
-  const canReplyOfficial = Boolean(
-    user?.id && session?.access_token &&
-    officialAccess?.token === session.access_token && officialAccess.allowed
-  );
+  useEffect(() => {
+    refreshAccess();
+    const onFocus = () => refreshAccess();
+    const interval = window.setInterval(refreshAccess, 30000);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      accessRequest.current += 1;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [refreshAccess]);
+
+  const accessStatus = !user ? "signed_out"
+    : access?.token !== session?.access_token ? "loading" : access.status;
+  const canUseSite = accessStatus === "active";
+  const canReplyOfficial = canUseSite && access?.admin === true;
 
   useEffect(() => {
+    let active = true;
+    let authEventReceived = false;
     const loadSession = async () => {
       try {
         const {
@@ -53,6 +67,7 @@ export function AuthProvider({ children }) {
           throw error;
         }
 
+        if (!active || authEventReceived) return;
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
       } catch (error) {
@@ -61,7 +76,7 @@ export function AuthProvider({ children }) {
           error
         );
       } finally {
-        setIsAuthLoading(false);
+        if (active && !authEventReceived) setIsAuthLoading(false);
       }
     };
 
@@ -71,6 +86,8 @@ export function AuthProvider({ children }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
+        authEventReceived = true;
+        if (!active) return;
         setSession(nextSession);
         setUser(nextSession?.user ?? null);
         setIsAuthLoading(false);
@@ -78,6 +95,7 @@ export function AuthProvider({ children }) {
     );
 
     return () => {
+      active = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -88,6 +106,9 @@ export function AuthProvider({ children }) {
     isAuthLoading,
     isLoggedIn: Boolean(user),
     canReplyOfficial,
+    canUseSite,
+    accessStatus,
+    refreshAccess,
   };
 
   return (

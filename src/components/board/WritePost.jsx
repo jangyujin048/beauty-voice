@@ -1,3 +1,4 @@
+import PrivateImage from "../media/PrivateMedia";
 import React, {
   useEffect,
   useMemo,
@@ -407,7 +408,7 @@ export default function WritePost({
               background: "#ffffff",
             }}
           >
-            <img
+            <PrivateImage
               src={imagePreviewUrl}
               alt="첨부 이미지 미리보기"
               style={{

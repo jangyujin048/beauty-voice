@@ -23,7 +23,7 @@ import AdminChallengeManager from "./components/admin/AdminChallengeManager";
 import BeautyLab from "./components/beautylab/BeautyLab";
 import MemberManager from "./components/members/MemberManager";
 
-const ADMIN_PASSWORD = "bcadmin2026!";
+
 
 import {
   stores,
@@ -37,6 +37,26 @@ import { makeAnonId } from "./utils/id";
 import { renderLinkedText } from "./utils/link";
 
 export default function App() {
+  const { user, canUseSite, canReplyOfficial, accessStatus, isAuthLoading, refreshAccess } = useAuth();
+  if (canUseSite && !isAuthLoading) return <SiteContent key={`${user.id}:${canReplyOfficial}`} />;
+  const checking = isAuthLoading || accessStatus === "loading";
+  const messages = {
+    signed_out: "등록된 Google 계정으로 로그인해주세요.",
+    unregistered: "아직 구성원으로 등록되지 않았습니다. 운영진에게 로그인 이메일과 소속을 알려주세요.",
+    paused: "사이트 이용이 중지된 계정입니다. 운영진에게 문의해주세요.",
+    error: "이용 권한을 확인하지 못했습니다. 잠시 후 다시 확인해주세요.",
+  };
+  return <main style={{ minHeight: "100dvh", display: "grid", placeItems: "center", padding: 20 }}>
+    <section className="panel" style={{ width: "100%", maxWidth: 460, boxSizing: "border-box" }}>
+      <h1>Beauty Voice</h1>
+      <p role="status">{checking ? "이용 권한 확인 중..." : messages[accessStatus] || messages.error}</p>
+      {!checking && <LoginButton />}
+      {user && !checking && <button type="button" className="soft" onClick={refreshAccess} style={{ marginTop: 16 }}>등록 상태 다시 확인</button>}
+    </section>
+  </main>;
+}
+
+function SiteContent() {
   const { user, canReplyOfficial } = useAuth();
   const [tab, setTab] = useState("home");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -61,8 +81,6 @@ const [openFaqCategories, setOpenFaqCategories] = useState([
   const [selectedInsight, setSelectedInsight] = useState(null);
   const [selected, setSelected] = useState(null);
   const [reply, setReply] = useState("");
-  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
-  const [adminPassword, setAdminPassword] = useState("");
 const [adminSubTab, setAdminSubTab] = useState("board");
   const [lookupAnonId, setLookupAnonId] = useState("");
   const [lookupPassword, setLookupPassword] = useState("");
@@ -411,17 +429,6 @@ const groupedFaqs = useMemo(() => {
     setTab("done");
   }
 
-function loginAdmin(e) {
-  e.preventDefault();
-
-  if (adminPassword === ADMIN_PASSWORD) {
-    setAdminLoggedIn(true);
-    setAdminPassword("");
-    return;
-  }
-
-  alert("운영진 비밀번호가 일치하지 않습니다.");
-}
 
   function downloadVoiceCsv() {
     if (voices.length === 0) {
@@ -1284,7 +1291,7 @@ async function checkMyReplies(e) {
   <BeautyLab />
 )}
 
-{tab === "admin" && !adminLoggedIn && (
+{tab === "admin" && !canReplyOfficial && (
   <section className="panel center adminLoginPanel">
     <div className="adminLoginIcon">
       <Lock size={28} />
@@ -1296,27 +1303,11 @@ async function checkMyReplies(e) {
       운영진만 접수 내용을 확인하고 답변할 수 있습니다.
     </p>
 
-    <form
-      onSubmit={loginAdmin}
-      className="adminLoginForm"
-    >
-      <label>비밀번호</label>
-
-      <input
-        type="password"
-        value={adminPassword}
-        onChange={(e) => setAdminPassword(e.target.value)}
-        placeholder="운영진 비밀번호를 입력하세요"
-      />
-
-      <button type="submit">
-        로그인
-      </button>
-    </form>
+    <p className="sub">운영진으로 등록된 활성 계정으로 로그인해주세요.</p>
   </section>
 )}
 
-        {tab === "admin" && adminLoggedIn && (
+        {tab === "admin" && canReplyOfficial && (
           <section className="panel">
             <div className="row">
               <div>

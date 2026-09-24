@@ -1,3 +1,4 @@
+import PrivateImage, { PrivateMediaLink } from "../media/PrivateMedia";
 import { dateLabel } from "../../utils/date";
 
 export default function Insight({
@@ -118,7 +119,7 @@ export default function Insight({
             </div>
 
             {featuredInsight.image_url && (
-              <img
+              <PrivateImage
                 src={
                   featuredInsight.image_url
                 }
@@ -166,7 +167,7 @@ export default function Insight({
                   }}
                 >
                   {item.image_url && (
-                    <img
+                    <PrivateImage
                       src={item.image_url}
                       alt="BC 인사이트 카드뉴스"
                       style={{
@@ -237,14 +238,14 @@ export default function Insight({
           </div>
 
           {selectedInsight.image_url && (
-            <a
+            <PrivateMediaLink
               href={
                 selectedInsight.image_url
               }
               target="_blank"
               rel="noreferrer"
             >
-              <img
+              <PrivateImage
                 src={
                   selectedInsight.image_url
                 }
@@ -258,7 +259,7 @@ export default function Insight({
                   marginTop: 16,
                 }}
               />
-            </a>
+            </PrivateMediaLink>
           )}
 
           <p

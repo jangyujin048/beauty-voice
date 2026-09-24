@@ -1,3 +1,4 @@
+import PrivateImage, { PrivateMediaLink } from "../media/PrivateMedia";
 import React from "react";
 import { ChevronRight, X } from "lucide-react";
 import { dateLabel } from "../../utils/date";
@@ -90,12 +91,12 @@ const previousNotices =
           </div>
 
           {featuredNotice.image_url && (
-            <a
+            <PrivateMediaLink
               href={featuredNotice.image_url}
               target="_blank"
               rel="noreferrer"
             >
-              <img
+              <PrivateImage
                 src={featuredNotice.image_url}
                 alt="공지 이미지"
                 style={{
@@ -109,7 +110,7 @@ const previousNotices =
                   marginTop: 24,
                 }}
               />
-            </a>
+            </PrivateMediaLink>
           )}
         </div>
       ) : (
@@ -284,12 +285,12 @@ const previousNotices =
             </div>
 
             {selectedNotice.image_url && (
-              <a
+              <PrivateMediaLink
                 href={selectedNotice.image_url}
                 target="_blank"
                 rel="noreferrer"
               >
-                <img
+                <PrivateImage
                   src={
                     selectedNotice.image_url
                   }
@@ -305,7 +306,7 @@ const previousNotices =
                     marginTop: 20,
                   }}
                 />
-              </a>
+              </PrivateMediaLink>
             )}
           </div>
         )}

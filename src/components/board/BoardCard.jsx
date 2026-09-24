@@ -1,3 +1,4 @@
+import PrivateImage from "../media/PrivateMedia";
 import React from "react";
 import {
   Lock,
@@ -206,7 +207,7 @@ export default function BoardCard({
       </p>
 
       {post?.image_url && (
-        <img
+        <PrivateImage
           src={post.image_url}
           alt=""
           loading="lazy"

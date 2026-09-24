@@ -20,6 +20,7 @@ const allowed=c=>role==='admin'||(mine()?.is_active&&(c.target_store_ids.length=
 const ok=data=>({data:structuredClone(data),error:null});
 const denied=()=>({data:null,error:{code:'42501',message:'권한이 없습니다.'}});
 export default {
+ storage:{from:()=>({getPublicUrl:path=>({data:{publicUrl:'https://fixture.test/storage/v1/object/public/voice-images/'+path}}),download:async()=>({data:new Blob(['<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200"><rect width="400" height="200" fill="#d8e7ff"/><text x="30" y="90">Private image test</text></svg>'],{type:'image/svg+xml'}),error:null})})},
  auth:{getSession:async()=>ok({session:session()}),getUser:async()=>ok({user:session()?.user}),onAuthStateChange:cb=>{authListener=cb;return {data:{subscription:{unsubscribe(){authListener=null;}}}};}},
  rpc:async name=>name==='beauty_voice_site_access'?ok([{status:role==='admin'||mine()?.is_active?'active':mine()?'paused':'unregistered',is_admin:role==='admin'}]):name==='beauty_voice_can_reply_official'?ok(role==='admin'):name==='beauty_voice_my_membership'?ok(mine()?[{store_id:mine().store_id,store_name:stores.find(s=>s.id===mine().store_id).name,is_active:mine().is_active}]:[]):ok(false),
  from(table){
@@ -27,7 +28,8 @@ export default {
   const match=x=>filters.every(([k,v])=>x[k]===v);
   const execute=()=>{
    let rows=[];
-   if(table==='beauty_voice_stores'){rows=stores;}
+   if(table==='notices'){rows=[{id:'notice',title:'테스트 공지',content:'비공개 이미지 테스트',created_at:now(),image_url:'https://fixture.test/storage/v1/object/public/voice-images/notices/test.svg'}];}
+   else if(table==='beauty_voice_stores'){rows=stores;}
    else if(table==='beauty_voice_members'){
     if(role!=='admin')return op==='read'?ok([]):denied();
     if(op==='insert'){
@@ -58,30 +60,18 @@ export default {
  }
 };`;
 const entry=`
-import React,{useState,useEffect} from 'react';
+import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {AuthProvider,useAuth} from '/src/contexts/AuthContext.jsx';
-import MemberManager from '/src/components/members/MemberManager.jsx';
-import AdminChallengeManager from '/src/components/admin/AdminChallengeManager.jsx';
-import WeeklyChallenge from '/src/components/challenge/WeeklyChallenge.jsx';
-import '/src/style.css';
+import {AuthProvider} from '/src/contexts/AuthContext.jsx';
+import App from '/src/App.jsx';
 const e=React.createElement;
-window.alert=message=>window.dispatchEvent(new CustomEvent('fixture-alert',{detail:message}));
-function Fixture(){
- const {user}=useAuth();const [view,setView]=useState(new URLSearchParams(location.search).get('view')||'members');
- const [notice,setNotice]=useState('');useEffect(()=>{const fn=e=>setNotice(e.detail);window.addEventListener('fixture-alert',fn);return()=>window.removeEventListener('fixture-alert',fn);},[]);
- const views={members:MemberManager,admin:AdminChallengeManager,missions:WeeklyChallenge};
- return e(React.Fragment,null,
-  e('nav',{style:{display:'flex',flexWrap:'wrap',gap:8,padding:12}},
-   ...[['admin','운영진 계정'],['a','일반 BC A'],['b','일반 BC B'],['unknown','미등록 계정'],['out','로그아웃']].map(([id,label])=>e('button',{key:id,onClick:()=>window.fixtureSwitchUser(id)},label)),
-   ...[['members','구성원 화면'],['admin','미션관리 화면'],['missions','BC 미션 화면']].map(([id,label])=>e('button',{key:'view-'+id,onClick:()=>setView(id)},label))),
-  notice?e('p',{role:'status'},notice):null,
-  e('main',{style:{maxWidth:1100,margin:'auto',padding:16}},e(views[view],{key:(user?.id||'guest')+view})));
-}
+function Fixture(){return e(React.Fragment,null,e('nav',{style:{display:'flex',gap:8,flexWrap:'wrap'}},
+ ...[['admin','운영진 계정'],['a','일반 BC'],['unknown','미등록 계정'],['out','로그아웃']].map(([id,label])=>e('button',{key:id,onClick:()=>window.fixtureSwitchUser(id)},label))),e(App));}
 createRoot(document.getElementById('root')).render(e(AuthProvider,null,e(Fixture)));
 `;
 const server=await createServer({configFile:false,server:{host:'127.0.0.1',port:5174,strictPort:true},plugins:[{
  name:'member-fixture',enforce:'pre',
+ transform(code,id){if(id.endsWith('/src/App.jsx'))return code.slice(0,code.lastIndexOf('createRoot(document'));},
  resolveId(id){if(/\/api\/supabase(?:\.js)?$/.test(id))return '\0member-mock';if(id==='/member-entry.js')return '\0member-entry.js';},
  load(id){if(id==='\0member-mock')return mock;if(id==='\0member-entry.js')return entry;},
  configureServer(s){s.middlewares.use('/__members',(_req,res)=>{res.setHeader('Content-Type','text/html');res.end('<!doctype html><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>구성원·미션 테스트</title><div id="root"></div><script type="module" src="/member-entry.js"></script>');});}
