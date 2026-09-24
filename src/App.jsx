@@ -42,7 +42,7 @@ export default function App() {
   const checking = isAuthLoading || accessStatus === "loading";
   const messages = {
     signed_out: "등록된 Google 계정으로 로그인해주세요.",
-    unregistered: "아직 구성원으로 등록되지 않았습니다. 운영진에게 로그인 이메일과 소속을 알려주세요.",
+    unregistered: <>아직 구성원으로 등록되지 않았습니다.<br />운영진에게 로그인 이메일과 소속을 알려주세요.</>,
     paused: "사이트 이용이 중지된 계정입니다. 운영진에게 문의해주세요.",
     error: "이용 권한을 확인하지 못했습니다. 잠시 후 다시 확인해주세요.",
   };
