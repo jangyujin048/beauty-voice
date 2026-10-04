@@ -52,3 +52,18 @@ export async function updateMember(member, { storeId, isActive }) {
   if (error) throw memberError(error);
   return data;
 }
+
+export async function deleteMember(member) {
+  if (!member?.id) {
+    throw new Error("삭제할 구성원을 다시 선택해주세요.");
+  }
+
+  const { error } = await supabase
+    .from("beauty_voice_members")
+    .delete()
+    .eq("id", member.id);
+
+  if (error) throw memberError(error);
+
+  return member.id;
+}

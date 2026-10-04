@@ -1,7 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, Users } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { createMember, getMembers, getStores, updateMember } from "../../services/memberService";
+import {
+  createMember,
+  deleteMember,
+  getMembers,
+  getStores,
+  updateMember,
+} from "../../services/memberService";
+
 import "./member-management.css";
 
 export default function MemberManager() {
@@ -76,6 +83,51 @@ export default function MemberManager() {
     } catch (cause) { setError(cause?.message || "이용 상태를 변경하지 못했습니다."); }
     finally { actionInFlight.current = false; setBusy(false); }
   };
+const removeMember = async member => {
+  if (actionInFlight.current || !canReplyOfficial) return;
+
+  const isSelf =
+    member.email.toLowerCase() ===
+    user?.email?.toLowerCase();
+
+  if (isSelf) {
+    alert("본인 계정은 삭제할 수 없습니다.");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `${member.email}\n\n이 구성원을 삭제하시겠습니까?\n삭제 후 해당 계정은 사이트를 이용할 수 없습니다.\n기존 게시글과 참여 기록은 유지됩니다.`
+  );
+
+  if (!confirmed) return;
+
+  actionInFlight.current = true;
+  setBusy(true);
+  setError("");
+  setMessage("");
+
+  try {
+    await deleteMember(member);
+
+    setMembers(previous =>
+      previous.filter(item => item.id !== member.id)
+    );
+
+    if (editing?.id === member.id) {
+      resetForm();
+    }
+
+    setMessage("구성원이 삭제되었습니다.");
+  } catch (cause) {
+    setError(
+      cause?.message ||
+      "구성원을 삭제하지 못했습니다."
+    );
+  } finally {
+    actionInFlight.current = false;
+    setBusy(false);
+  }
+};
 
   if (!canReplyOfficial) return <div className="empty">등록된 운영진 계정으로 로그인하면 구성원을 관리할 수 있습니다.</div>;
 
@@ -110,6 +162,17 @@ export default function MemberManager() {
         <div className="member-actions">
           <button type="button" className="soft" disabled={busy} onClick={() => { setEditing(member); setEmail(member.email); setStoreId(member.store_id); setMessage(""); setError(""); }}>소속 변경</button>
           <button type="button" className="soft" disabled={busy || member.email.toLowerCase() === user?.email?.toLowerCase()} title={member.email.toLowerCase() === user?.email?.toLowerCase() ? "본인 계정은 이용 중지할 수 없습니다." : undefined} onClick={() => toggleActive(member)}>{member.is_active ? "이용 중지" : "이용 재개"}</button>
+<button
+  type="button"
+  className="member-delete-button"
+  disabled={
+    busy ||
+    member.email.toLowerCase() === user?.email?.toLowerCase()
+  }
+  onClick={() => removeMember(member)}
+>
+  삭제
+</button>
         </div>
       </article>)}
     </div>}

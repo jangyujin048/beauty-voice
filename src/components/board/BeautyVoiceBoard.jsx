@@ -8,7 +8,6 @@ import React, {
 import BoardCard from "./BoardCard";
 import BoardDetail from "./BoardDetail";
 import BoardHeader from "./BoardHeader";
-import CategoryFilter from "./CategoryFilter";
 import SearchBar from "./SearchBar";
 import WritePost from "./WritePost";
 
@@ -19,6 +18,7 @@ import {
 } from "../../services/postService";
 
 const ALL_CATEGORY = "전체";
+const ALL_STORES = "__all_stores__";
 const DEFAULT_SORT_TYPE = "latest";
 
 const CATEGORIES = [
@@ -28,6 +28,33 @@ const CATEGORIES = [
   "도움 요청",
   "아이디어",
   "기타",
+];
+
+const STORES = [
+  {
+    value: ALL_STORES,
+    label: "전체 매장",
+  },
+  {
+    value: "전체",
+    label: "전체",
+  },
+  {
+    value: "올리브영N 성수",
+    label: "올리브영N 성수",
+  },
+  {
+    value: "올리브영 뷰티 맨션 성수",
+    label: "올리브영 뷰티 맨션 성수",
+  },
+  {
+    value: "올리브영 센트럴 강남 타운",
+    label: "올리브영 센트럴 강남 타운",
+  },
+  {
+    value: "미공개",
+    label: "미공개",
+  },
 ];
 
 const SORT_OPTIONS = [
@@ -110,11 +137,16 @@ export default function BeautyVoiceBoard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [selectedCategory, setSelectedCategory] =
-    useState(ALL_CATEGORY);
-  const [keyword, setKeyword] = useState("");
-  const [sortType, setSortType] =
-    useState(DEFAULT_SORT_TYPE);
+const [selectedStore, setSelectedStore] =
+  useState(ALL_STORES);
+
+const [selectedCategory, setSelectedCategory] =
+  useState(ALL_CATEGORY);
+
+const [keyword, setKeyword] = useState("");
+
+const [sortType, setSortType] =
+  useState(DEFAULT_SORT_TYPE);
 
   const [selectedPost, setSelectedPost] = useState(null);
   const [isWriting, setIsWriting] = useState(false);
@@ -147,17 +179,27 @@ export default function BeautyVoiceBoard() {
     const normalizedKeyword = keyword.trim().toLowerCase();
 
     return posts
-      .filter(post => {
-        const matchesCategory =
-          selectedCategory === ALL_CATEGORY ||
-          post.category === selectedCategory;
 
-        const matchesKeyword =
-          normalizedKeyword === "" ||
-          getSearchText(post).includes(normalizedKeyword);
+.filter(post => {
+  const matchesStore =
+    selectedStore === ALL_STORES ||
+    post.store === selectedStore;
 
-        return matchesCategory && matchesKeyword;
-      })
+  const matchesCategory =
+    selectedCategory === ALL_CATEGORY ||
+    post.category === selectedCategory;
+
+  const matchesKeyword =
+    normalizedKeyword === "" ||
+    getSearchText(post).includes(normalizedKeyword);
+
+  return (
+    matchesStore &&
+    matchesCategory &&
+    matchesKeyword
+  );
+})
+
       .sort((a, b) => {
         if (sortType === "likes") {
           const likeDifference =
@@ -173,12 +215,13 @@ export default function BeautyVoiceBoard() {
           getCreatedAtTimestamp(a)
         );
       });
-  }, [
-    posts,
-    selectedCategory,
-    keyword,
-    sortType,
-  ]);
+}, [
+  posts,
+  selectedStore,
+  selectedCategory,
+  keyword,
+  sortType,
+]);
 
   const handleOpenWrite = useCallback(() => {
     if (!isLoggedIn || !user) {
@@ -336,24 +379,60 @@ export default function BeautyVoiceBoard() {
       />
 
       <SearchBar
-        value={keyword}
-        onChange={setKeyword}
-      />
+  value={keyword}
+  onChange={setKeyword}
+/>
 
-      <CategoryFilter
-        categories={CATEGORIES}
-        selectedCategory={selectedCategory}
-        onChange={setSelectedCategory}
-      />
+<div className="beautyVoiceFilterBar">
+  <div className="beautyVoiceFilterSelect">
+    <span>매장</span>
 
-      <div style={styles.toolbar}>
-        <p style={styles.resultCount}>
-          {selectedCategory} {visiblePosts.length}건
-        </p>
+    <select
+      aria-label="매장 필터"
+      value={selectedStore}
+      onChange={event =>
+        setSelectedStore(event.target.value)
+      }
+    >
+      {STORES.map(store => (
+        <option
+          key={store.value}
+          value={store.value}
+        >
+          {store.label}
+        </option>
+      ))}
+    </select>
+  </div>
 
-<div style={styles.toolbar}>
-  <p style={styles.resultCount}>
-    {selectedCategory} {visiblePosts.length}건
+  <div className="beautyVoiceFilterSelect">
+    <span>카테고리</span>
+
+    <select
+      aria-label="카테고리 필터"
+      value={selectedCategory}
+      onChange={event =>
+        setSelectedCategory(event.target.value)
+      }
+    >
+      {CATEGORIES.map(category => (
+        <option
+          key={category}
+          value={category}
+        >
+          {category === ALL_CATEGORY
+            ? "전체 카테고리"
+            : category}
+        </option>
+      ))}
+    </select>
+  </div>
+
+</div>
+
+<div className="beautyVoiceResultRow">
+  <p>
+    검색 결과 <strong>{visiblePosts.length}</strong>건
   </p>
 
   <select
@@ -365,7 +444,7 @@ export default function BeautyVoiceBoard() {
     className="ui-select"
     style={{
       width: "auto",
-      minWidth: 120,
+      minWidth: 110,
     }}
   >
     {SORT_OPTIONS.map(option => (
@@ -378,8 +457,6 @@ export default function BeautyVoiceBoard() {
     ))}
   </select>
 </div>
-      </div>
-
       <div style={styles.postList}>
         {isLoading ? (
           <BoardMessage>

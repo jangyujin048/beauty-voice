@@ -23,3 +23,23 @@
  .member-management .member-row { align-items: flex-start; }
  .member-management .member-actions { justify-content: flex-start; }
 }
+.member-delete-button {
+  color: #b42318;
+  background: #fff;
+  border: 1px solid #f1c7c2;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.member-delete-button:hover {
+  background: #fff5f4;
+  border-color: #e8aaa3;
+}
+
+.member-delete-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
