@@ -51,10 +51,6 @@ const STORES = [
     value: "올리브영 센트럴 강남 타운",
     label: "올리브영 센트럴 강남 타운",
   },
-  {
-    value: "미공개",
-    label: "미공개",
-  },
 ];
 
 const SORT_OPTIONS = [

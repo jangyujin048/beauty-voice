@@ -547,31 +547,17 @@ const handleSubmitComment = async (post, official = false) => {
                           답변완료로 변경됩니다.
                         </span>
 
-                        <button
-                          type="button"
-                          className="primary"
-                          disabled={isSubmitting || !commentText.trim()}
-                          onClick={() =>
-                            handleSubmitComment(post)
-                          }
-                        >
-                          <Send size={16} />
-
-                          {isSubmitting
-                            ? "등록 중..."
-                            : "익명 답변 등록"}
-                        </button>
-                        {canReplyOfficial && (
-                          <button
-                            type="button"
-                            className="primary"
-                            disabled={isSubmitting || !commentText.trim()}
-                            onClick={() => handleSubmitComment(post, true)}
-                          >
-                            <Send size={16} />
-                            운영진으로 답변
-                          </button>
-                        )}
+                       {canReplyOfficial && (
+  <button
+    type="button"
+    className="adminReplyButton adminReplyButtonPrimary"
+    disabled={isSubmitting || !commentText.trim()}
+    onClick={() => handleSubmitComment(post, true)}
+  >
+    <Send size={16} />
+    {isSubmitting ? "등록 중..." : "운영진으로 답변"}
+  </button>
+)}
                       </div>
                     </div>
                   </div>

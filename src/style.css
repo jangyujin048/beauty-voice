@@ -3716,3 +3716,51 @@ textarea { min-height: 160px; resize: vertical; }
     min-width: 0;
   }
 }
+
+.adminReplyButton {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  transition:
+    background 0.18s,
+    border-color 0.18s,
+    transform 0.18s;
+}
+
+.adminReplyButtonSecondary {
+  color: #123a79;
+  background: #fff;
+  border: 1px solid #d8e1f0;
+}
+
+.adminReplyButtonSecondary:hover {
+  background: #f5f8fd;
+  border-color: #bfcde0;
+}
+
+.adminReplyButtonPrimary {
+  color: #fff;
+  background: #123a79;
+  border: 1px solid #123a79;
+}
+
+.adminReplyButtonPrimary:hover {
+  background: #0f3269;
+  border-color: #0f3269;
+}
+
+.adminReplyButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
