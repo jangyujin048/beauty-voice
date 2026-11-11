@@ -1,0 +1,39 @@
+.insight-header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:28px; flex-wrap:wrap; }
+.insight-header h2 { margin:0 0 12px; }
+.insight-header .sub { margin:0; }
+.insight-external { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:15px 20px; border-radius:14px; background:#0e2d69; color:#fff; text-decoration:none; font-weight:700; font-size:14px; }
+.insight-external:hover { background:#173e80; }
+.insight-store-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.insight-store-card { border:1px solid #dde5f3; border-radius:24px; padding:24px; display:flex; flex-direction:column; min-width:0; }
+.insight-store-card h3 { text-align:center; font-size:20px; line-height:1.5; margin:0 0 24px; min-height:60px; word-break:keep-all; }
+.insight-store-card h3 span { display:block; }
+.insight-cover { position:relative; width:100%; padding:0; border:0; background:#f4f7fc; border-radius:16px; overflow:hidden; cursor:pointer; aspect-ratio:4/5; }
+.insight-cover img { width:100%; height:100%; object-fit:contain; display:block; }
+.insight-image-count { position:absolute; bottom:12px; right:12px; display:grid; place-items:center; width:46px; height:46px; border-radius:50%; background:rgba(14,45,105,.86); color:white; font-weight:800; }
+.insight-no-image { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; height:100%; color:#7b879d; font-size:14px; }
+.insight-empty { aspect-ratio:4/5; background:#f7f9fc; border-radius:16px; }
+.insight-card-copy { margin:20px 0; flex:1; }
+.insight-card-copy small { color:#667085; }
+.insight-card-copy h4 { font-size:17px; line-height:1.5; margin:8px 0; overflow-wrap:anywhere; }
+.insight-card-copy p { font-size:14px; color:#667085; line-height:1.7; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-line; overflow-wrap:anywhere; }
+.insight-store-card > .soft { justify-content:center; }
+.insight-history { margin-top:32px; }
+.insight-history > div { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.insight-history button { text-align:left; cursor:pointer; display:flex; flex-direction:column; gap:10px; color:inherit; font:inherit; }
+.insight-history small,.insight-history span { color:#667085; font-size:12px; }
+.insight-gallery > a > img { width:100%; max-height:65vh; object-fit:contain; background:#f7f9fc; border-radius:14px; }
+.insight-thumbnails { display:flex; align-items:center; gap:10px; margin-top:12px; }
+.insight-thumbnails button { width:64px; height:70px; padding:3px; border:2px solid transparent; border-radius:10px; background:#f7f9fc; cursor:pointer; }
+.insight-thumbnails button[aria-pressed="true"] { border-color:#0e2d69; }
+.insight-thumbnails img { width:100%; height:100%; object-fit:contain; }
+.insight-thumbnails span { margin-left:auto; font-size:13px; color:#667085; }
+.insight-body { white-space:pre-wrap; line-height:1.8; overflow-wrap:anywhere; margin-top:24px; }
+.insight-upload-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:12px; }
+.insight-upload-grid img { width:100%; height:120px; object-fit:contain; background:#f7f9fc; border-radius:10px; }
+.insight-upload-grid span { display:block; margin:8px 0; font-size:12px; }
+.insight-upload-grid button { font-size:12px; padding:8px; }
+.insight-images-input [role="alert"] { color:#b42318; font-size:13px; }
+.insight-page button:focus-visible,.insight-page a:focus-visible { outline:3px solid #9cb9ed; outline-offset:3px; }
+.insight-sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+@media(max-width:1100px) { .insight-store-card { padding:16px; } .insight-store-card h3 { font-size:17px; min-height:76px; } }
+@media(max-width:760px) { .insight-store-grid,.insight-history > div { grid-template-columns:1fr; } .insight-store-card h3 { min-height:0; font-size:20px; } .insight-external { width:100%; } .insight-cover { max-height:440px; } }

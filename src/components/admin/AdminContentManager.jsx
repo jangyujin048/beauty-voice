@@ -1,3 +1,5 @@
+import InsightImagesInput from "../insight/InsightImagesInput";
+import { INSIGHT_STORES, insightImages } from "../insight/insightModel";
 import PrivateImage from "../media/PrivateMedia";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../../api/supabase";
@@ -30,7 +32,7 @@ const CONFIG = {
     label: "BC 인사이트",
     singular: "인사이트",
     icon: "💡",
-    description: "월별 인사이트와 카드뉴스를 등록하고 관리합니다.",
+    description: "매장별 인사이트와 사진을 최대 3장까지 등록하고 관리합니다.",
     table: "bc_insights",
     searchFields: ["month", "title", "content"],
     titleField: "title",
@@ -53,7 +55,7 @@ function emptyForm(type) {
   if (type === "faq") {
     return { category: "정보", question: "", answer: "" };
   }
-  return { month: "", title: "", content: "", imageFile: null, imageUrl: "" };
+  return { month: "", title: "", content: "", storeId: "", images: [] };
 }
 
 function formatDate(value) {
@@ -262,7 +264,7 @@ if (type === "notice") {
     } else if (type === "faq") {
       setForm({ category: item.category || "기타", question: item.question || "", answer: item.answer || "" });
     } else {
-      setForm({ month: item.month || "", title: item.title || "", content: item.content || "", imageFile: null, imageUrl: item.image_url || "" });
+      setForm({ month: item.month || "", title: item.title || "", content: item.content || "", storeId: item.store_id || "", images: insightImages(item).map(url => ({ url })) });
     }
     setFormOpen(true);
   }
@@ -291,15 +293,18 @@ if (type === "notice") {
       if (!form.question.trim()) return "FAQ 질문을 입력해주세요.";
       if (!form.answer.trim()) return "FAQ 답변을 입력해주세요.";
     } else {
+      if (!INSIGHT_STORES.some(store => store.id === form.storeId)) return "매장을 선택해주세요.";
       if (!form.month.trim()) return "월 정보를 입력해주세요.";
       if (!form.title.trim()) return "인사이트 제목을 입력해주세요.";
-      if (!form.content.trim()) return "인사이트 내용을 입력해주세요.";
+      if (!form.content.trim() && !form.images.length) return "사진 또는 인사이트 내용을 입력해주세요.";
+      if (form.images.length > 3) return "사진은 최대 3장까지 첨부할 수 있습니다.";
     }
     return "";
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (loading) return;
     const validationMessage = validateForm();
     if (validationMessage) return alert(validationMessage);
 
@@ -318,9 +323,17 @@ if (type === "notice") {
       } else if (type === "faq") {
         payload = { category: form.category, question: form.question.trim(), answer: form.answer.trim() };
       } else {
-        let imageUrl = form.imageUrl || "";
-        if (form.imageFile) imageUrl = await uploadImage(form.imageFile);
-        payload = { month: form.month.trim(), title: form.title.trim(), content: form.content.trim(), image_url: imageUrl };
+        const uploaded = [...form.images];
+        for (let i = 0; i < uploaded.length; i += 1) {
+          if (uploaded[i].file) {
+            uploaded[i] = { url: await uploadImage(uploaded[i].file) };
+            // Preserve successful uploads if a later upload or database save fails.
+            setForm(previous => ({ ...previous, images: [...uploaded] }));
+          }
+        }
+        const urls = uploaded.map(image => image.url);
+        payload = { month: form.month.trim(), title: form.title.trim(), content: form.content.trim(),
+          store_id: form.storeId, image_urls: urls, image_url: urls[0] || "" };
       }
 
       const query = editingItem
@@ -341,7 +354,7 @@ if (type === "notice") {
       );
     } catch (error) {
       console.error(error);
-      alert(`${config.singular} 저장 중 오류가 발생했습니다. updated_at 컬럼과 Supabase 권한을 확인해주세요.`);
+      alert(type === "insight" ? "인사이트를 저장하지 못했습니다. 연결 상태와 인사이트 SQL 적용 여부를 확인한 뒤 다시 시도해주세요. 입력한 내용은 유지됩니다." : `${config.singular} 저장 중 오류가 발생했습니다. updated_at 컬럼과 Supabase 권한을 확인해주세요.`);
     } finally {
       setLoading(false);
     }
@@ -551,7 +564,7 @@ if (type === "notice") {
         {type === "insight" && (
           <div className="admin-card-top">
             <span className="admin-category-badge">
-              {item.month}
+              {INSIGHT_STORES.find(store => store.id === item.store_id)?.name || "매장 미지정"} · {item.month} · 사진 {insightImages(item).length}장
             </span>
           </div>
         )}
@@ -624,6 +637,7 @@ if (type === "notice") {
         onClose={closeForm}
       >
         <form onSubmit={handleSubmit} className="admin-modal-form">
+          <fieldset disabled={loading} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, display: "grid", gap: 18 }}>
           {type === "faq" && (
             <div className="admin-form-field">
               <label htmlFor="admin-category">카테고리</label>
@@ -633,6 +647,13 @@ if (type === "notice") {
             </div>
           )}
 
+          {type === "insight" && <div className="admin-form-field">
+            <label htmlFor="admin-insight-store">매장</label>
+            <select id="admin-insight-store" value={form.storeId} disabled={loading} onChange={event => setForm(previous => ({ ...previous, storeId: event.target.value }))}>
+              <option value="">매장을 선택해주세요</option>
+              {INSIGHT_STORES.map(store => <option key={store.id} value={store.id}>{store.name}</option>)}
+            </select>
+          </div>}
           {type === "insight" && (
             <div className="admin-form-field">
               <label htmlFor="admin-month">월</label>
@@ -715,7 +736,8 @@ if (type === "notice") {
     </p>
   </div>
 )}
-          {config.imageField && (
+          {type === "insight" && <InsightImagesInput images={form.images} disabled={loading} onChange={images => setForm(previous => ({ ...previous, images }))} />}
+          {config.imageField && type !== "insight" && (
             <div className="admin-form-field">
               <label>이미지</label>
               <ImageDropzone
@@ -727,6 +749,7 @@ if (type === "notice") {
             </div>
           )}
 
+          </fieldset>
           <footer className="admin-modal-footer">
             <button type="button" className="admin-secondary-button" onClick={closeForm} disabled={loading}>취소</button>
             <button type="submit" className="admin-primary-button" disabled={loading}>

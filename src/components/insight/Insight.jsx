@@ -1,277 +1,66 @@
-import PrivateImage, { PrivateMediaLink } from "../media/PrivateMedia";
-import { dateLabel } from "../../utils/date";
+import React, { useState } from 'react';
+import { ExternalLink, Image as ImageIcon } from 'lucide-react';
+import PrivateImage, { PrivateMediaLink } from '../media/PrivateMedia';
+import AdminModal from '../admin/AdminModal';
+import { INSIGHT_STORES, insightImages } from './insightModel';
+import { dateLabel } from '../../utils/date';
+import './insight.css';
 
-export default function Insight({
-  insights,
-  selectedInsight,
-  setSelectedInsight,
-}) {
-  const sortedInsights = [...insights].sort(
-    (a, b) =>
-      new Date(b.created_at) -
-      new Date(a.created_at)
-  );
+function InsightDetail({ item }) {
+  const images = insightImages(item);
+  const [index, setIndex] = useState(0);
+  return <>
+    <p className="sub">{INSIGHT_STORES.find(s => s.id === item.store_id)?.name || '기존 인사이트'} · {item.month} · {dateLabel(item.created_at)}</p>
+    {images.length > 0 && <div className="insight-gallery">
+      <PrivateMediaLink href={images[index]} target="_blank" rel="noopener noreferrer" aria-label={`사진 ${index + 1} 원본 보기 (새 탭)`}>
+        <PrivateImage src={images[index]} alt={`${item.title} 사진 ${index + 1}`} />
+      </PrivateMediaLink>
+      {images.length > 1 && <div className="insight-thumbnails" aria-label="첨부 사진 선택">
+        {images.map((url, i) => <button type="button" key={`${url}:${i}`} aria-label={`사진 ${i + 1} 보기`} aria-pressed={index === i} onClick={() => setIndex(i)}>
+          <PrivateImage src={url} alt="" />
+        </button>)}
+        <span>{index + 1} / {images.length}</span>
+      </div>}
+    </div>}
+    {item.content && <p className="insight-body">{item.content}</p>}
+  </>;
+}
 
-  const featuredInsight =
-    sortedInsights[0] || null;
-
-  const otherInsights =
-    sortedInsights.slice(1);
-
-  return (
-    <section className="panel">
-      <h2>BC 인사이트</h2>
-
-      <p className="sub">
-        월간 만족도, VOC, 트렌드, 교육 이슈를 한눈에 확인하는 공간입니다.
-      </p>
-
-      {insights.length === 0 && (
-        <div className="empty">
-          등록된 BC 인사이트가 없습니다.
-        </div>
-      )}
-
-      {/* 최신 대표 인사이트 */}
-      {featuredInsight && (
-        <div
-          className="card"
-          style={{
-            marginTop: 24,
-            marginBottom: 28,
-            padding: 24,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              gap: 20,
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: "#163A73",
-                  marginBottom: 8,
-                }}
-              >
-                LATEST INSIGHT
-              </div>
-
-              <h3
-                style={{
-                  margin: "0 0 8px",
-                  fontSize: 22,
-                }}
-              >
-                {featuredInsight.title}
-              </h3>
-
-              <p
-                className="sub"
-                style={{
-                  margin: "0 0 16px",
-                }}
-              >
-                {featuredInsight.month} ·{" "}
-                {dateLabel(
-                  featuredInsight.created_at
-                )}
-              </p>
-
-              <p
-                style={{
-                  margin: 0,
-                  lineHeight: 1.7,
-                  whiteSpace: "pre-line",
-                  display: "-webkit-box",
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                }}
-              >
-                {featuredInsight.content}
-              </p>
-
-              <button
-                type="button"
-                className="soft"
-                onClick={() =>
-                  setSelectedInsight(
-                    featuredInsight
-                  )
-                }
-                style={{
-                  marginTop: 18,
-                }}
-              >
-                자세히 보기
-              </button>
-            </div>
-
-            {featuredInsight.image_url && (
-              <PrivateImage
-                src={
-                  featuredInsight.image_url
-                }
-                alt="BC 인사이트 카드뉴스"
-                style={{
-                  width: 260,
-                  height: 180,
-                  objectFit: "cover",
-                  borderRadius: 16,
-                  border:
-                    "1px solid #DDE5F3",
-                  flexShrink: 0,
-                }}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 이전 인사이트 */}
-      {otherInsights.length > 0 && (
-        <>
-          <h3
-            style={{
-              marginBottom: 14,
-              fontSize: 18,
-            }}
-          >
-            이전 인사이트
-          </h3>
-
-          <section className="grid">
-            {otherInsights.map(
-              (item) => (
-                <button
-                  className="card"
-                  key={item.id}
-                  onClick={() =>
-                    setSelectedInsight(
-                      item
-                    )
-                  }
-                  style={{
-                    textAlign: "left",
-                  }}
-                >
-                  {item.image_url && (
-                    <PrivateImage
-                      src={item.image_url}
-                      alt="BC 인사이트 카드뉴스"
-                      style={{
-                        width: "100%",
-                        height: 150,
-                        objectFit:
-                          "cover",
-                        borderRadius:
-                          14,
-                        border:
-                          "1px solid #DDE5F3",
-                        marginBottom:
-                          12,
-                      }}
-                    />
-                  )}
-
-                  <h3>
-                    {item.title}
-                  </h3>
-
-                  <p>{item.month}</p>
-
-                  <small>
-                    {dateLabel(
-                      item.created_at
-                    )}
-                  </small>
-                </button>
-              )
-            )}
-          </section>
-        </>
-      )}
-
-      {/* 상세 */}
-      {selectedInsight && (
-        <div
-          className="card"
-          style={{
-            marginTop: 24,
-          }}
-        >
-          <div className="row">
-            <div>
-              <h3>
-                {selectedInsight.title}
-              </h3>
-
-              <p className="sub">
-                {selectedInsight.month} ·{" "}
-                {dateLabel(
-                  selectedInsight.created_at
-                )}
-              </p>
-            </div>
-
-            <button
-              className="soft"
-              onClick={() =>
-                setSelectedInsight(
-                  null
-                )
-              }
-            >
-              닫기
+export default function Insight({ insights, selectedInsight, setSelectedInsight }) {
+  const sorted = [...insights].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  const latest = INSIGHT_STORES.map(store => ({ ...store, item: sorted.find(item => item.store_id === store.id) }));
+  const featuredIds = new Set(latest.map(store => store.item?.id));
+  const history = sorted.filter(item => !featuredIds.has(item.id));
+  return <section className="panel insight-page">
+    <header className="insight-header">
+      <div><h2>BC 인사이트</h2><p className="sub">월간 만족도, VOC, 트렌드, 교육 이슈를 한눈에 확인하는 공간입니다.</p></div>
+      <a className="insight-external" href="https://kitty-insight.vercel.app/" target="_blank" rel="noopener noreferrer">뷰티 맨션 성수 인사이트로 이동 <ExternalLink size={17} aria-hidden="true" /><span className="insight-sr-only"> (새 탭)</span></a>
+    </header>
+    <div className="insight-store-grid">
+      {latest.map(store => {
+        const images = insightImages(store.item);
+        return <article className="insight-store-card" key={store.id}>
+          <h3>{store.name}<span>인사이트</span></h3>
+          {store.item ? <>
+            <button type="button" className="insight-cover" onClick={() => setSelectedInsight(store.item)} aria-label={`${store.name}: ${store.item.title} 자세히 보기`}>
+              {images.length ? <PrivateImage src={images[0]} alt={store.item.title} /> : <span className="insight-no-image"><ImageIcon size={36} />글로 만나는 인사이트</span>}
+              {images.length > 1 && <span className="insight-image-count">+{images.length - 1}</span>}
             </button>
-          </div>
-
-          {selectedInsight.image_url && (
-            <PrivateMediaLink
-              href={
-                selectedInsight.image_url
-              }
-              target="_blank"
-              rel="noreferrer"
-            >
-              <PrivateImage
-                src={
-                  selectedInsight.image_url
-                }
-                alt="BC 인사이트 카드뉴스"
-                style={{
-                  width: "100%",
-                  maxWidth: 720,
-                  borderRadius: 20,
-                  border:
-                    "1px solid #DDE5F3",
-                  marginTop: 16,
-                }}
-              />
-            </PrivateMediaLink>
-          )}
-
-          <p
-            style={{
-              whiteSpace: "pre-line",
-              marginTop: 16,
-            }}
-          >
-            {selectedInsight.content}
-          </p>
-        </div>
-      )}
-    </section>
-  );
+            <div className="insight-card-copy"><small>{store.item.month}</small><h4>{store.item.title}</h4>{store.item.content && <p>{store.item.content}</p>}</div>
+            <button type="button" className="soft" onClick={() => setSelectedInsight(store.item)}>자세히 보기</button>
+          </> : <div className="insight-no-image insight-empty"><ImageIcon size={36} /><p>등록된 인사이트가 없습니다.</p></div>}
+        </article>;
+      })}
+    </div>
+    {history.length > 0 && <section className="insight-history">
+      <h3>이전 인사이트</h3>
+      <div>{history.map(item => <button className="card" type="button" key={item.id} onClick={() => setSelectedInsight(item)}>
+        <small>{INSIGHT_STORES.find(s => s.id === item.store_id)?.name || '매장 미지정'} · {item.month}</small>
+        <strong>{item.title}</strong><span>{dateLabel(item.created_at)}</span>
+      </button>)}</div>
+    </section>}
+    <AdminModal open={Boolean(selectedInsight)} title={selectedInsight?.title || '인사이트'} onClose={() => setSelectedInsight(null)}>
+      {selectedInsight && <InsightDetail key={selectedInsight.id} item={selectedInsight} />}
+    </AdminModal>
+  </section>;
 }

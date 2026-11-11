@@ -36,10 +36,6 @@ import { dateLabel } from "./utils/date";
 import { makeAnonId } from "./utils/id";
 import { renderLinkedText } from "./utils/link";
 
-function openInsightSite() {
-  window.open("https://kitty-insight.vercel.app/", "_blank", "noopener,noreferrer");
-}
-
 export default function App() {
   const { user, canUseSite, canReplyOfficial, accessStatus, isAuthLoading, refreshAccess } = useAuth();
   if (canUseSite && !isAuthLoading) return <SiteContent key={`${user.id}:${canReplyOfficial}`} />;
@@ -836,7 +832,7 @@ async function checkMyReplies(e) {
 
         <button onClick={() => setTab("thanks")} className={tab === "thanks" ? "active" : ""}><Heart size={18}/> Thanks</button>
         <button onClick={() => setTab("faq")} className={tab === "faq" ? "active" : ""}><BookOpen size={18}/> FAQ</button>
-        <button type="button" onClick={openInsightSite} aria-label="BC 인사이트 (새 탭에서 열기)" title="새 탭에서 열기"><BookOpen size={18}/> BC 인사이트</button>
+        <button type="button" onClick={() => setTab("insight")} className={tab === "insight" ? "active" : ""}><BookOpen size={18}/> BC 인사이트</button>
 
 {/* BEAUTY LAB - 잠정 보류
 <button
@@ -884,7 +880,7 @@ async function checkMyReplies(e) {
             <nav className="mobileMoreNav">
               <button type="button" className={tab === "notice" ? "active" : ""} onClick={() => { setTab("notice"); setMobileMenuOpen(false); }}><Bell size={19}/> 공지사항</button>
               <button type="button" className={tab === "faq" ? "active" : ""} onClick={() => { setTab("faq"); setMobileMenuOpen(false); }}><BookOpen size={19}/> FAQ</button>
-              <button type="button" aria-label="BC 인사이트 (새 탭에서 열기)" title="새 탭에서 열기" onClick={() => { openInsightSite(); setMobileMenuOpen(false); }}><BookOpen size={19}/> BC 인사이트</button>
+              <button type="button" className={tab === "insight" ? "active" : ""} onClick={() => { setTab("insight"); setMobileMenuOpen(false); }}><BookOpen size={19}/> BC 인사이트</button>
               <button type="button" className={tab === "admin" ? "active" : ""} onClick={() => { setTab("admin"); setMobileMenuOpen(false); }}><Lock size={19}/> 운영진</button>
             </nav>
             <div className="mobileMenuLogin"><LoginButton /></div>
