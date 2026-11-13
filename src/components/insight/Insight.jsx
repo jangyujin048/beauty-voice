@@ -27,7 +27,7 @@ function InsightDetail({ item }) {
 }
 
 export default function Insight({ insights, selectedInsight, setSelectedInsight }) {
-  const [collapsed, setCollapsed] = useState({});
+  const [collapsed, setCollapsed] = useState(() => Object.fromEntries(INSIGHT_STORES.map(store => [store.id, true])));
   const sorted = [...insights].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const latest = INSIGHT_STORES.map(store => ({ ...store, item: sorted.find(item => item.store_id === store.id) }));
   const featuredIds = new Set(latest.map(store => store.item?.id));
