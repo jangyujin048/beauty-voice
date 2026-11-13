@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { ChevronDown, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import PrivateImage, { PrivateMediaLink } from '../media/PrivateMedia';
 import AdminModal from '../admin/AdminModal';
 import { INSIGHT_STORES, insightImages } from './insightModel';
@@ -27,6 +27,7 @@ function InsightDetail({ item }) {
 }
 
 export default function Insight({ insights, selectedInsight, setSelectedInsight }) {
+  const [collapsed, setCollapsed] = useState({});
   const sorted = [...insights].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const latest = INSIGHT_STORES.map(store => ({ ...store, item: sorted.find(item => item.store_id === store.id) }));
   const featuredIds = new Set(latest.map(store => store.item?.id));
@@ -40,7 +41,15 @@ export default function Insight({ insights, selectedInsight, setSelectedInsight 
       {latest.map(store => {
         const images = insightImages(store.item);
         return <article className="insight-store-card" key={store.id}>
-          <h3>{store.name}<span>인사이트</span></h3>
+          <h3 className="insight-accordion-heading">
+            <button type="button" className="insight-accordion-toggle"
+              aria-expanded={!collapsed[store.id]} aria-controls={`insight-store-${store.id}`}
+              onClick={() => setCollapsed(previous => ({ ...previous, [store.id]: !previous[store.id] }))}>
+              <span>{store.name}<span>인사이트</span></span>
+              <ChevronDown size={20} aria-hidden="true" />
+            </button>
+          </h3>
+          <div id={`insight-store-${store.id}`} className="insight-accordion-body" hidden={Boolean(collapsed[store.id])}>
           {store.item ? <>
             <button type="button" className="insight-cover" onClick={() => setSelectedInsight(store.item)} aria-label={`${store.name}: ${store.item.title} 자세히 보기`}>
               {images.length ? <PrivateImage src={images[0]} alt={store.item.title} /> : <span className="insight-no-image"><ImageIcon size={36} />글로 만나는 인사이트</span>}
@@ -49,6 +58,7 @@ export default function Insight({ insights, selectedInsight, setSelectedInsight 
             <div className="insight-card-copy"><small>{store.item.month}</small><h4>{store.item.title}</h4>{store.item.content && <p>{store.item.content}</p>}</div>
             <button type="button" className="soft" onClick={() => setSelectedInsight(store.item)}>자세히 보기</button>
           </> : <div className="insight-no-image insight-empty"><ImageIcon size={36} /><p>등록된 인사이트가 없습니다.</p></div>}
+          </div>
         </article>;
       })}
     </div>

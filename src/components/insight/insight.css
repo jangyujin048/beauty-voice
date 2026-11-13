@@ -3,7 +3,7 @@
 .insight-header .sub { margin:0; }
 .insight-external { display:inline-flex; align-items:center; justify-content:center; gap:10px; padding:15px 20px; border-radius:14px; background:#0e2d69; color:#fff; text-decoration:none; font-weight:700; font-size:14px; }
 .insight-external:hover { background:#173e80; }
-.insight-store-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.insight-store-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
 .insight-store-card { border:1px solid #dde5f3; border-radius:24px; padding:24px; display:flex; flex-direction:column; min-width:0; }
 .insight-store-card h3 { text-align:center; font-size:20px; line-height:1.5; margin:0 0 24px; min-height:60px; word-break:keep-all; }
 .insight-store-card h3 span { display:block; }
@@ -52,3 +52,18 @@
 .insight-photo-picker-copy > span { font-size:12px; line-height:1.6; color:#667085; word-break:keep-all; overflow-wrap:anywhere; }
 .insight-images-input .insight-photo-picker:disabled { cursor:default; background:#f7f9fc; border-style:solid; border-color:#dde5f3; color:#667085; }
 @media(max-width:480px) { .insight-images-input .insight-photo-picker { padding:16px; gap:12px; } }
+
+@media(min-width:1500px) { .insight-store-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+
+/* Each store can be collapsed independently with mouse or keyboard. */
+.insight-store-grid { align-items:start; }
+.insight-store-card .insight-accordion-heading { margin:0; min-height:0; }
+.insight-accordion-toggle { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; padding:0; border:0; background:transparent; color:inherit; font:inherit; font-weight:inherit; line-height:inherit; cursor:pointer; text-align:left; }
+.insight-accordion-toggle > span { flex:1; }
+.insight-accordion-toggle > svg { flex-shrink:0; color:#667085; transition:transform .18s; }
+.insight-accordion-toggle[aria-expanded="true"] > svg { transform:rotate(180deg); }
+.insight-accordion-toggle:hover { color:#173f73; }
+.insight-accordion-body { display:flex; flex-direction:column; margin-top:24px; }
+.insight-accordion-body[hidden] { display:none; }
+.insight-accordion-body > .soft { justify-content:center; }
+@media(prefers-reduced-motion:reduce) { .insight-accordion-toggle > svg { transition:none; } }

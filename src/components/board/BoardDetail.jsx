@@ -1,3 +1,4 @@
+import { STORE_NAMES } from "../../constants/stores";
 import React, {
   useCallback,
   useEffect,
@@ -42,12 +43,7 @@ const CATEGORIES = [
   "기타",
 ];
 
-const STORES = [
-  "전체",
-  "올리브영N 성수",
-  "올리브영 뷰티 맨션 성수",
-  "올리브영 센트럴 강남 타운",
-];
+const STORES = ["전체", ...STORE_NAMES];
 
 const styles = {
   backButton: {

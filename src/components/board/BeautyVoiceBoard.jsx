@@ -1,3 +1,4 @@
+import { STORE_NAMES } from "../../constants/stores";
 import React, {
   useCallback,
   useEffect,
@@ -31,26 +32,9 @@ const CATEGORIES = [
 ];
 
 const STORES = [
-  {
-    value: ALL_STORES,
-    label: "전체 매장",
-  },
-  {
-    value: "전체",
-    label: "전체",
-  },
-  {
-    value: "올리브영N 성수",
-    label: "올리브영N 성수",
-  },
-  {
-    value: "올리브영 뷰티 맨션 성수",
-    label: "올리브영 뷰티 맨션 성수",
-  },
-  {
-    value: "올리브영 센트럴 강남 타운",
-    label: "올리브영 센트럴 강남 타운",
-  },
+  { value: ALL_STORES, label: "전체 매장" },
+  { value: "전체", label: "전체" },
+  ...STORE_NAMES.map(name => ({ value: name, label: name })),
 ];
 
 const SORT_OPTIONS = [

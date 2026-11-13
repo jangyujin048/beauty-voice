@@ -14,8 +14,18 @@ const buttons=()=>[...w.document.querySelectorAll('button')];
 const click=async text=>{const b=buttons().find(b=>b.textContent.trim()===text);assert.ok(b,text);b.click();await tick();};
 const fill=async(id,value)=>{const el=w.document.getElementById(id);const prototype=el.tagName==='SELECT'?w.HTMLSelectElement.prototype:el.tagName==='TEXTAREA'?w.HTMLTextAreaElement.prototype:w.HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(prototype,'value').set.call(el,value);el.dispatchEvent(new w.Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));await tick();};
 await tick();await tick();
-assert.equal(w.document.querySelectorAll('.insight-store-card').length,3);
+assert.equal(w.document.querySelectorAll('.insight-store-card').length,4);
 assert.equal(w.document.querySelectorAll('.insight-image-count').length,3);
+const toggles=[...w.document.querySelectorAll('.insight-accordion-toggle')];
+assert.equal(toggles.length,4);
+assert.ok(toggles.every(button=>button.getAttribute('aria-expanded')==='true'));
+toggles[0].click();await tick();
+assert.equal(toggles[0].getAttribute('aria-expanded'),'false');
+assert.equal(w.document.getElementById(toggles[0].getAttribute('aria-controls')).hidden,true);
+assert.equal(toggles[1].getAttribute('aria-expanded'),'true');
+toggles[0].click();await tick();
+assert.equal(w.document.getElementById(toggles[0].getAttribute('aria-controls')).hidden,false);
+
 assert.equal(w.document.querySelector('.insight-external').href,'https://kitty-insight.vercel.app/');
 assert.equal(w.document.querySelector('.insight-external').target,'_blank');
 await click('자세히 보기');assert.ok(w.document.querySelector('[role="dialog"]'));
@@ -37,5 +47,5 @@ assert.equal(w.document.querySelectorAll('.insight-upload-grid > div').length,3)
 await click('사진 2 제거');await click('수정 내용 저장');await tick();await click('사용자 화면');
 assert.match(w.document.querySelector('.insight-store-card').textContent,/새 갤러리 테스트/);
 assert.equal(w.document.querySelector('.insight-image-count').textContent,'+1');
-console.log('PASS: three store cards, external link, gallery switching, four-photo rejection, three-photo create, two-photo edit and latest-card display');
+console.log('PASS: four store cards, external link, gallery switching, four-photo rejection, three-photo create, two-photo edit and latest-card display');
 w.close();

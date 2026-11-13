@@ -8,7 +8,7 @@ const app = express();
 const PORT = 4000;
 const DATA_DIR = path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "db.json");
-const stores = ["올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운"];
+const stores = ["올리브영N 성수", "뷰티맨션 성수", "센트럴강남타운", "컬러 그라운드 홍대"];
 
 app.use(cors());
 app.use(express.json());

@@ -1,0 +1,64 @@
+// Isolated PostgreSQL engine. No connection or writes to production Supabase.
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const { PGlite } = await import(process.env.PGLITE_MODULE || '@electric-sql/pglite');
+const db = new PGlite();
+const admin='00000000-0000-0000-0000-000000000001';
+const a='00000000-0000-0000-0000-000000000002';
+const b='00000000-0000-0000-0000-000000000003';
+const unknown='00000000-0000-0000-0000-000000000004';
+const q = async (sql,params=[]) => (await db.query(sql,params)).rows;
+const val=async(sql,params=[])=>Object.values((await q(sql,params))[0]||{})[0];
+const fail=async(sql,code='42501')=>assert.rejects(db.exec(sql),error=>error.code===code);
+async function login(id,email,role='authenticated') {
+ await db.exec(`reset role; set request.jwt.claim.sub='${id}'; set request.jwt.claim.email='${email}'; set role ${role};`);
+}
+await db.exec(`
+ create role authenticated; create role anon; create schema auth;
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function auth.jwt() returns jsonb language sql stable as $$select jsonb_build_object('email',current_setting('request.jwt.claim.email',true))$$;
+ create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+ insert into auth.users values('${admin}','admin@test.example',now()),('${a}','a@test.example',now()),('${b}','b@test.example',now()),('${unknown}','unknown@test.example',now());
+ create table public.admin_users(id uuid primary key default gen_random_uuid(),email text not null,created_at timestamptz not null default now());
+ insert into admin_users(email) values('admin@test.example');
+ create function public.is_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.admin_users where lower(trim(email))=lower(trim(auth.jwt()->>'email')))$$;
+ create table weekly_challenges(id uuid primary key default gen_random_uuid(), title text not null,description text not null,prompt text,start_date date not null,end_date date not null,status text not null default 'active' check(status in ('active','closed')),created_by uuid references auth.users,created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+ create table weekly_challenge_comments(id uuid primary key default gen_random_uuid(),challenge_id uuid not null references weekly_challenges on delete cascade,user_id uuid references auth.users on delete set null,content text not null,writer text not null default '익명 BC',created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+ grant usage on schema auth,public to authenticated,anon;
+ grant all on weekly_challenges,weekly_challenge_comments to authenticated,anon;
+ alter table weekly_challenges enable row level security;
+ alter table weekly_challenge_comments enable row level security;
+ create policy "Admins can create weekly challenges" on weekly_challenges for insert to authenticated with check ((select is_admin()));
+ create policy "Admins can update weekly challenges" on weekly_challenges for update to authenticated using((select is_admin())) with check((select is_admin()));
+ create policy "Admins can delete weekly challenges" on weekly_challenges for delete to authenticated using((select is_admin()));
+ create policy "Authenticated users can read challenges" on weekly_challenges for select to authenticated using(true);
+ create policy "Authenticated users can create challenge comments" on weekly_challenge_comments for insert to authenticated with check(auth.uid()=user_id);
+ create policy "Authenticated users can read challenge comments" on weekly_challenge_comments for select to authenticated using(true);
+ create policy "Users can update own challenge comments" on weekly_challenge_comments for update to authenticated using(auth.uid()=user_id) with check(auth.uid()=user_id);
+ create policy "Users can delete own challenge comments" on weekly_challenge_comments for delete to authenticated using(auth.uid()=user_id);
+ insert into weekly_challenges(title,description,start_date,end_date) values('existing','preserved','2026-09-19','2026-09-30');
+`);
+const previous=await readFile(new URL('../supabase/migrations/20260919_official_replies.sql',import.meta.url),'utf8');
+const helper=previous.match(/create or replace function public\.beauty_voice_can_reply_official\(\)[\s\S]*?grant execute on function public\.beauty_voice_can_reply_official\(\) to authenticated;/)[0];
+await db.exec(helper);
+const migration=await readFile(new URL('../supabase/migrations/20260919_store_members_and_missions.sql',import.meta.url),'utf8');
+await db.exec(migration);await db.exec(migration);
+
+await db.exec("create table bc_insights(id uuid default gen_random_uuid() primary key,title text,image_url text); insert into bc_insights(title,image_url) values('preserved','old.jpg');");
+await db.exec(await readFile(new URL('../supabase/migrations/20261111_store_insight_gallery.sql',import.meta.url),'utf8'));
+const addition=await readFile(new URL('../supabase/migrations/20261113_add_hongdae_store.sql',import.meta.url),'utf8');
+await db.exec(addition);await db.exec(addition);
+assert.equal(await val("select count(*)::int from beauty_voice_stores where id='hongdae' and name='컬러 그라운드 홍대'"),1);
+assert.equal(await val("select count(*)::int from bc_insights where title='preserved' and image_url='old.jpg'"),1);
+await db.exec("insert into bc_insights(title,store_id,image_urls) values('홍대','hongdae',array['a','b','c'])");
+await fail("insert into bc_insights(store_id) values('invalid')",'23514');
+await login(admin,'admin@test.example');
+await db.exec("insert into beauty_voice_members(email,store_id) values('a@test.example','hongdae'),('b@test.example','seongsu')");
+await db.exec("insert into weekly_challenges(title,description,start_date,end_date,target_store_ids) values('홍대 미션','new','2026-11-13','2026-11-30',array['hongdae'])");
+await login(a,'a@test.example');
+assert.equal(await val('select store_id from beauty_voice_my_membership()'),'hongdae');
+assert.deepEqual((await q('select title from weekly_challenges order by title')).map(x=>x.title),['existing','홍대 미션']);
+await login(b,'b@test.example');
+assert.deepEqual((await q('select title from weekly_challenges order by title')).map(x=>x.title),['existing']);
+await db.close();
+console.log('PASS: idempotent Hongdae store, preserved history, insight write, member registration, own/all mission visibility and other-store isolation');

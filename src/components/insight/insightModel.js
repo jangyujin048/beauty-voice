@@ -1,8 +1,5 @@
-export const INSIGHT_STORES = [
-  { id: 'seongsu', name: '올리브영N 성수' },
-  { id: 'beauty_mansion', name: '올리브영 뷰티 맨션 성수' },
-  { id: 'gangnam', name: '올리브영 센트럴 강남 타운' },
-];
+import { STORE_CATALOG } from "../../constants/stores.js";
+export const INSIGHT_STORES = STORE_CATALOG;
 export function insightImages(item) {
   if (Array.isArray(item?.image_urls) && item.image_urls.length) return item.image_urls.filter(Boolean).slice(0, 3);
   return item?.image_url ? [item.image_url] : [];
