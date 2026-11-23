@@ -1,3 +1,4 @@
+import InstallApp, { InstallProvider } from "./components/install/InstallApp";
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import supabase from "./api/supabase";
@@ -53,6 +54,7 @@ export default function App() {
       <p role="status">{checking ? "이용 권한 확인 중..." : messages[accessStatus] || messages.error}</p>
       {!checking && <LoginButton />}
       {user && !checking && <AccessRecheck key={user.id} status={accessStatus} onCheck={refreshAccess} />}
+      {!checking && <InstallApp />}
     </section>
   </main>;
 }
@@ -851,6 +853,7 @@ async function checkMyReplies(e) {
   }}
 >
   <LoginButton />
+  <InstallApp />
 </div>
       </aside>
 
@@ -883,7 +886,7 @@ async function checkMyReplies(e) {
               <button type="button" className={tab === "insight" ? "active" : ""} onClick={() => { setTab("insight"); setMobileMenuOpen(false); }}><BookOpen size={19}/> BC 인사이트</button>
               <button type="button" className={tab === "admin" ? "active" : ""} onClick={() => { setTab("admin"); setMobileMenuOpen(false); }}><Lock size={19}/> 운영진</button>
             </nav>
-            <div className="mobileMenuLogin"><LoginButton /></div>
+            <div className="mobileMenuLogin"><LoginButton /><InstallApp /></div>
           </aside>
         </div>
       )}
@@ -1442,7 +1445,9 @@ async function checkMyReplies(e) {
 }
 
 createRoot(document.getElementById("root")).render(
-  <AuthProvider>
-    <App />
-  </AuthProvider>
+  <InstallProvider>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </InstallProvider>
 );

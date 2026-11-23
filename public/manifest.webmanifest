@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Beauty Voice",
+  "short_name": "Beauty Voice",
+  "description": "메이크업 BC 전용 소통 공간",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F7F9FC",
+  "theme_color": "#0E2D69",
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/icons/bv-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/bv-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/bv-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

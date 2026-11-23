@@ -1,0 +1,16 @@
+.install-app { margin-top:16px; min-width:0; }
+.install-app .install-app-button { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 14px; min-height:44px; border:1px solid #d7e2f4; border-radius:13px; background:#eef3fb; color:#0e2d69; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.install-app .install-app-button:disabled { opacity:.65; cursor:wait; }
+.install-app .install-app-button:hover:not(:disabled) { background:#e4ecfa; }
+.install-app-help { margin-top:10px; font-size:12px; color:#53627a; }
+.install-app-help summary { display:flex; align-items:center; gap:7px; padding:10px 2px; cursor:pointer; list-style:none; font-weight:700; }
+.install-app-help summary::-webkit-details-marker { display:none; }
+.install-app-help summary::after { content:'＋'; margin-left:auto; }
+.install-app-help[open] summary::after { content:'−'; }
+.install-app-help summary svg { flex-shrink:0; }
+.install-app-help > div { padding:4px 12px 12px; border:1px solid #e1e7f0; border-radius:12px; background:#f8faff; }
+.install-app-help p { margin:12px 0 0; line-height:1.7; word-break:keep-all; overflow-wrap:anywhere; }
+.install-app-help strong { color:#1d2433; }
+.install-app-note { color:#667085; }
+.install-app-result { font-size:12px; line-height:1.7; color:#53627a; }
+.install-app button:focus-visible,.install-app summary:focus-visible { outline:3px solid #9cb9ed; outline-offset:3px; }
