@@ -1,3 +1,4 @@
+import PushSettings, { PushProvider } from "./components/notifications/PushSettings";
 import InstallApp, { InstallProvider } from "./components/install/InstallApp";
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
@@ -92,6 +93,18 @@ function AccessRecheck({ status, onCheck }) {
 function SiteContent() {
   const { user, canReplyOfficial } = useAuth();
   const [tab, setTab] = useState("home");
+  useEffect(() => {
+    const openPushTab = () => {
+      const value = new URLSearchParams(window.location.hash.slice(1)).get('push');
+      if (['home','notice','myVoice','challenge','insight'].includes(value)) {
+        setTab(value);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    };
+    openPushTab();
+    window.addEventListener('hashchange', openPushTab);
+    return () => window.removeEventListener('hashchange', openPushTab);
+  }, []);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [voices, setVoices] = useState([]);
   const [notices, setNotices] = useState([]);
@@ -853,7 +866,7 @@ async function checkMyReplies(e) {
   }}
 >
   <LoginButton />
-  <InstallApp />
+  <InstallApp /><PushSettings />
 </div>
       </aside>
 
@@ -886,7 +899,7 @@ async function checkMyReplies(e) {
               <button type="button" className={tab === "insight" ? "active" : ""} onClick={() => { setTab("insight"); setMobileMenuOpen(false); }}><BookOpen size={19}/> BC 인사이트</button>
               <button type="button" className={tab === "admin" ? "active" : ""} onClick={() => { setTab("admin"); setMobileMenuOpen(false); }}><Lock size={19}/> 운영진</button>
             </nav>
-            <div className="mobileMenuLogin"><LoginButton /><InstallApp /></div>
+            <div className="mobileMenuLogin"><LoginButton /><InstallApp /><PushSettings /></div>
           </aside>
         </div>
       )}
@@ -1447,7 +1460,7 @@ async function checkMyReplies(e) {
 createRoot(document.getElementById("root")).render(
   <InstallProvider>
     <AuthProvider>
-      <App />
+      <PushProvider><App /></PushProvider>
     </AuthProvider>
   </InstallProvider>
 );

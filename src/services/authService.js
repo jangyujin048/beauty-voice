@@ -1,3 +1,4 @@
+import { disablePush } from "./pushService";
 import supabase from "../api/supabase";
 
 export async function signInWithGoogle() {
@@ -17,6 +18,7 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
+  await disablePush();
   const { error } = await supabase.auth.signOut();
 
   if (error) {
